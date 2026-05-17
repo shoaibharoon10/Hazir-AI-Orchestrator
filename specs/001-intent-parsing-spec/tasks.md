@@ -55,8 +55,8 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T008 [P] [US1] Create integration test boilerplate for Acceptance Scenario 1 in `backend/tests/integration/test_intent_parsing.py` (depends on T006, T007)
-- [ ] T009 [P] [US1] Create integration test boilerplate for Acceptance Scenario 2 in `backend/tests/integration/test_intent_parsing.py` (depends on T006, T007)
+- [x] T008 [P] [US1] Create integration test boilerplate for Acceptance Scenario 1 in `backend/tests/integration/test_intent_parsing.py` (depends on T006, T007)
+- [x] T009 [P] [US1] Create integration test boilerplate for Acceptance Scenario 2 in `backend/tests/integration/test_intent_parsing.py` (depends on T006, T007)
 
 ### Implementation for User Story 1
 
