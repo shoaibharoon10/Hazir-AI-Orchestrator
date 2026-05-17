@@ -5,7 +5,8 @@ import time
 from typing import Any, Optional
 
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
     GENAI_AVAILABLE = True
 except ImportError:
     GENAI_AVAILABLE = False
@@ -45,13 +46,13 @@ Extraction Rules:
 
 class GeminiIntentParser:
     """
-    Parser utilizing Google Gemini API for identifying service intent,
+    Parser utilizing Google GenAI SDK for identifying service intent,
     location, time, and urgency from mixed-language queries.
     """
     
     def _initialize_model(self) -> None:
         if not GENAI_AVAILABLE:
-            logger.error("google-generativeai package is not installed.")
+            logger.error("google-genai package is not installed.")
             return
             
         # Fix: Check both typical environment variable names
@@ -60,15 +61,15 @@ class GeminiIntentParser:
             logger.error("Neither GOOGLE_API_KEY nor GEMINI_API_KEY found in environment. Gemini API calls will fail.")
         else:
             try:
-                genai.configure(api_key=api_key)
-                # Initialize the generative model
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                self.client = genai.Client(api_key=api_key)
+                self.model_id = 'gemini-2.5-flash'
                 logger.info("Successfully initialized Gemini API client.")
             except Exception as e:
                 logger.error(f"Failed to configure Gemini API: {str(e)}", exc_info=True)
 
     def __init__(self) -> None:
-        self.model: Optional[Any] = None
+        self.client: Optional[Any] = None
+        self.model_id: Optional[str] = None
         self._initialize_model()
         
     def parse_raw_query(self, query: str) -> APIResponseSchema[IntentExtractionSchema]:
@@ -86,16 +87,16 @@ class GeminiIntentParser:
         logger.info(f"GeminiIntentParser received query for parsing: '{query}'")
         
         try:
-            if not self.model:
+            if not self.client:
                 # Structural Fix: Lazy load the model in case environment variables were 
                 # populated after the module was initially imported by FastAPI
                 self._initialize_model()
 
-            if not self.model:
-                logger.error("Gemini model not initialized properly.")
+            if not self.client:
+                logger.error("Gemini client not initialized properly.")
                 return APIResponseSchema(
                     success=False,
-                    error="Gemini model not initialized properly."
+                    error="Gemini client not initialized properly."
                 )
                 
             prompt = f"{SYSTEM_PROMPT}\n\nUser Query:\n{query}"
@@ -103,9 +104,10 @@ class GeminiIntentParser:
             logger.info("Executing Google Gemini API live request...")
             
             # Use generation_config to encourage JSON output
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
+            response = self.client.models.generate_content(
+                model=self.model_id,
+                contents=prompt,
+                config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                 )
             )
