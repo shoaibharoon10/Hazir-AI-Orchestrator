@@ -1,30 +1,18 @@
 import logging
-from typing import Any, Dict, Literal, Optional
+from typing import Union
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, status
+from fastapi.responses import JSONResponse
+
+from src.schemas.intent import (
+    APIResponseSchema,
+    IntentErrorResponseSchema,
+    IntentExtractionSchema,
+    IntentRequestSchema,
+)
 
 # Set up basic logging
 logger = logging.getLogger(__name__)
-
-# Temporary Schemas (can be moved to backend/src/schemas/intent.py as per plan)
-class IntentRequestSchema(BaseModel):
-    query: str = Field(..., description="The user's raw text request (can be mixed-language/Roman Urdu)")
-
-class IntentExtractionSchema(BaseModel):
-    service_category: Literal["AC Technician", "Electrician", "Plumber"] | None = Field(
-        None, description="The identified service category"
-    )
-    location_context: Optional[str] = Field(None, description="The location context extracted from the query")
-    time_preference: Optional[str] = Field(None, description="The time preference extracted from the query")
-    urgency_level: Literal["normal", "urgent", "very urgent"] | None = Field(
-        "normal", description="The urgency level"
-    )
-    confidence_score: float = Field(..., description="Confidence score of the extraction between 0.0 and 1.0")
-
-class IntentErrorResponseSchema(BaseModel):
-    error: str = Field(..., description="Error message explaining why the request failed")
-    clarifying_question: str = Field(..., description="Exactly one clarifying question for the user")
 
 # Router configuration
 router = APIRouter(
@@ -34,14 +22,14 @@ router = APIRouter(
 
 @router.post(
     "/intent",
-    response_model=IntentExtractionSchema,
+    response_model=APIResponseSchema[IntentExtractionSchema],
     responses={
-        status.HTTP_400_BAD_REQUEST: {"model": IntentErrorResponseSchema}
+        status.HTTP_400_BAD_REQUEST: {"model": APIResponseSchema[IntentErrorResponseSchema]}
     },
     summary="Parse user intent from text request",
     description="Extracts service category, location, time, and urgency from a potentially mixed-language user request."
 )
-async def parse_intent(request: IntentRequestSchema) -> IntentExtractionSchema:
+async def parse_intent(request: IntentRequestSchema) -> Union[APIResponseSchema[IntentExtractionSchema], JSONResponse]:
     """
     POST endpoint to parse user intent.
     Implements the Low-Confidence Gate: if confidence < 0.70, it stops execution
@@ -65,12 +53,17 @@ async def parse_intent(request: IntentRequestSchema) -> IntentExtractionSchema:
     if mock_confidence < 0.70:
         logger.warning(f"Low confidence ({mock_confidence}) detected. Triggering clarification.")
         # Returning exactly ONE clarifying question as mandated
-        raise HTTPException(
+        error_data = IntentErrorResponseSchema(
+            error="Low confidence in parsing intent.",
+            clarifying_question="Are you looking for an AC Technician, Electrician, or Plumber?"
+        )
+        return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": "Low confidence in parsing intent.",
-                "clarifying_question": "Are you looking for an AC Technician, Electrician, or Plumber?"
-            }
+            content=APIResponseSchema(
+                success=False,
+                data=error_data.model_dump(),
+                error="Low confidence gate triggered"
+            ).model_dump()
         )
 
     # Structured mock response matching Acceptance Test 1
@@ -83,4 +76,7 @@ async def parse_intent(request: IntentRequestSchema) -> IntentExtractionSchema:
     )
     
     logger.info("Successfully extracted intent with high confidence.")
-    return mock_response
+    return APIResponseSchema(
+        success=True,
+        data=mock_response
+    )
