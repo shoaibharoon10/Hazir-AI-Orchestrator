@@ -31,7 +31,37 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+*   **1.1 AI-First System Design**: The proposed solution prioritizes AI orchestration and reasoning over traditional CRUD approaches.
+*   **1.2 Spec-Driven Development**: The feature has an approved specification.
+*   **1.3 Mobile-First Experience**: The design is optimized for mobile responsiveness and usability on Android/Expo React Native.
+*   **1.4 Explainable AI Governance**: All AI-driven decisions include reasoning traces, ranking calculations, confidence scores, fallback logic, workflow transitions, and rejection explanations. Traces are persisted to `agentTraces`.
+*   **1.5 Simulation Before Real Dependency**: Development and demonstrations prioritize simulation-safe workflows and mock datasets. Synthetic datasets include `isSynthetic: true`.
+*   **2.1 Multi-Agent Orchestration Architecture**: The system uses structured multi-agent orchestration with isolated responsibilities, explicit interfaces, and structured outputs.
+*   **2.2 Strict Separation of Responsibilities**: Frontend UI is strictly separated from orchestration, AI reasoning, ranking, backend APIs, and database access.
+*   **2.3 API-Centric System Design**: All operations are exposed through backend APIs with consistent `{"success": true, "data": {}, "error": null}` response structures.
+*   **2.4 State Machine Enforcement**: Workflows operate through explicit state transitions, with mandatory booking/dispute lifecycles, timestamps, timeline appends, and triggering agent/reasoning context.
+*   **2.5 Fallback-First Engineering**: Critical workflows define fallback behaviors.
+*   **3.1 Frontend Stack**: Adheres to React Native, Expo, TypeScript, Expo EAS Build, strict TypeScript, and mobile-first UI.
+*   **3.2 Backend Stack**: Adheres to Python 3.12+, FastAPI, Pydantic, async-first architecture, typed functions, non-blocking AI calls, and business logic outside route handlers.
+*   **3.3 AI & Orchestration Stack**: Adheres to Google Gemini API, Google Antigravity, agent output validation, no direct LLM-to-Firestore writes, and deterministic prompt execution.
+*   **3.4 Database & Storage Constraints**: Adheres to Firebase Firestore, Firebase Authentication, backend-validated writes, and logical collection segmentation.
+*   **3.5 Maps & Geolocation**: Utilizes Google Places/Geocoding/Distance Matrix APIs with local approximation fallback.
+*   **4.1 Explainable Ranking**: Provider recommendations include final score, confidence, ranking explanation, rejection reasons, pricing justification, and availability reasoning.
+*   **4.2 Immutable Ranking Formula**: Standardized weighted formula is used; no sole reliance on distance/price/ratings.
+*   **4.3 Multilingual Parsing Rules**: Supports English, Urdu, Roman Urdu, and mixed-language prompts with confidence handling.
+*   **4.4 Output Validation Requirements**: AI-generated outputs are validated against invalid schedules, overlapping bookings, malformed prices, etc.
+*   **5.1 Modular Engineering**: Features are isolated modules with no cross-module internal imports, explicit shared utilities, and reusable business logic.
+*   **5.2 Function Standards**: Functions are under 50 lines, public functions/classes have docstrings, strong typing is used, and `Any` is avoided.
+*   **5.3 Testing Requirements**: Core orchestration, ranking, workflow state transitions, and critical utilities are tested. Test-first is preferred.
+*   **5.4 Logging & Observability**: Logs workflow transitions, agent execution traces, fallback activations, API/validation failures; never logs secrets/tokens/private payloads.
+*   **6.1 Secret Management**: All secrets use `.env`, secure environment variables, or protected runtime config; no hardcoded credentials.
+*   **6.2 Input Validation**: API boundaries use strict Pydantic validation; no unvalidated payloads trigger workflows/agents/Firestore writes.
+*   **6.3 Auditability**: State-changing operations generate audit metadata, timestamps, actor identity, and triggering agent reference.
+*   **7.1 Clarification Rule**: Ambiguous specifications lead to one focused clarification question; no assumptions for critical workflows.
+*   **7.2 Architectural Decision Rule**: Major architectural decisions propose multiple approaches, explain tradeoffs, and await consent.
+*   **7.3 Commit Convention**: Follows `type(scope): description`.
+*   **7.4 Constitution Enforcement**: Violations are flagged, documented, and corrected.
+*   **8. Mandatory Demo Requirements**: The prototype demonstrates all listed requirements.
 
 ## Project Structure
 
