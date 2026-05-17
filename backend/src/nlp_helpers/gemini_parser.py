@@ -49,23 +49,27 @@ class GeminiIntentParser:
     location, time, and urgency from mixed-language queries.
     """
     
+    def _initialize_model(self) -> None:
+        if not GENAI_AVAILABLE:
+            logger.error("google-generativeai package is not installed.")
+            return
+            
+        # Fix: Check both typical environment variable names
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            logger.error("Neither GOOGLE_API_KEY nor GEMINI_API_KEY found in environment. Gemini API calls will fail.")
+        else:
+            try:
+                genai.configure(api_key=api_key)
+                # Initialize the generative model
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                logger.info("Successfully initialized Gemini API client.")
+            except Exception as e:
+                logger.error(f"Failed to configure Gemini API: {str(e)}", exc_info=True)
+
     def __init__(self) -> None:
         self.model: Optional[Any] = None
-        
-        if GENAI_AVAILABLE:
-            api_key = os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                logger.warning("GOOGLE_API_KEY not found in environment variables. Gemini API calls will fail.")
-            else:
-                try:
-                    genai.configure(api_key=api_key)
-                    # Initialize the generative model
-                    self.model = genai.GenerativeModel('gemini-1.5-flash')
-                    logger.info("Successfully initialized Gemini API client.")
-                except Exception as e:
-                    logger.error(f"Failed to configure Gemini API: {str(e)}", exc_info=True)
-        else:
-            logger.warning("google-generativeai package is not installed.")
+        self._initialize_model()
         
     def parse_raw_query(self, query: str) -> APIResponseSchema[IntentExtractionSchema]:
         """
@@ -82,6 +86,11 @@ class GeminiIntentParser:
         logger.info(f"GeminiIntentParser received query for parsing: '{query}'")
         
         try:
+            if not self.model:
+                # Structural Fix: Lazy load the model in case environment variables were 
+                # populated after the module was initially imported by FastAPI
+                self._initialize_model()
+
             if not self.model:
                 logger.error("Gemini model not initialized properly.")
                 return APIResponseSchema(
