@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 from typing import Any, Optional
 
 try:
@@ -77,6 +78,7 @@ class GeminiIntentParser:
         Returns:
             APIResponseSchema[IntentExtractionSchema]: The unified API response containing parsed data or an error.
         """
+        start_time = time.time()
         logger.info(f"GeminiIntentParser received query for parsing: '{query}'")
         
         try:
@@ -88,6 +90,8 @@ class GeminiIntentParser:
                 )
                 
             prompt = f"{SYSTEM_PROMPT}\n\nUser Query:\n{query}"
+            
+            logger.info("Executing Google Gemini API live request...")
             
             # Use generation_config to encourage JSON output
             response = self.model.generate_content(
@@ -110,13 +114,14 @@ class GeminiIntentParser:
                 
             response_text = response_text.strip()
             
-            logger.info(f"Raw Gemini response: {response_text}")
+            exec_time = round(time.time() - start_time, 3)
+            logger.info(f"Raw Gemini API call completed in {exec_time}s. Response payload: {response_text}")
             
             parsed_json = json.loads(response_text)
             
             # Validate via Pydantic
             extracted_data = IntentExtractionSchema(**parsed_json)
-            logger.info(f"Successfully validated Pydantic model with confidence score: {extracted_data.confidence_score}")
+            logger.info(f"Successfully validated Pydantic extraction schema. Confidence Score: {extracted_data.confidence_score}")
             
             return APIResponseSchema(
                 success=True,

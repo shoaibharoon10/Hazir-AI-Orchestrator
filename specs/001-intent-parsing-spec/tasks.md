@@ -63,7 +63,7 @@
 - [x] T010 [US1] Refine `IntentExtractionSchema` to include `service_category`, `location_context`, `time_preference`, `urgency_level`, and `confidence_score` in `backend/src/schemas/intent.py` (depends on T005)
 - [x] T011 [US1] Implement prompt template matrix for Roman Urdu extraction in `backend/src/nlp_helpers/gemini_parser.py` (depends on T007, T010)
 - [x] T012 [US1] Integrate Gemini API parsing logic into FastAPI endpoint in `backend/src/api/orchestrate/intent.py` (depends on T006, T011)
-- [ ] T013 [US1] Add logging for User Story 1 operations in `backend/src/api/orchestrate/intent.py` and `backend/src/nlp_helpers/gemini_parser.py`
+- [x] T013 [US1] Add logging for User Story 1 operations in `backend/src/api/orchestrate/intent.py` and `backend/src/nlp_helpers/gemini_parser.py`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -77,13 +77,13 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T014 [P] [US2] Create integration test boilerplate for Acceptance Scenario (low confidence) in `backend/tests/integration/test_intent_parsing.py` (depends on T006, T007)
+- [x] T014 [P] [US2] Create integration test boilerplate for Acceptance Scenario (low confidence) in `backend/tests/integration/test_intent_parsing.py` (depends on T006, T007)
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement Low-Confidence Gate (< 0.70) in `backend/src/api/orchestrate/intent.py` (depends on T012)
-- [ ] T016 [US2] Implement logic to return exactly one clarification question on low confidence in `backend/src/api/orchestrate/intent.py` (depends on T015)
-- [ ] T017 [US2] Add logging for User Story 2 operations in `backend/src/api/orchestrate/intent.py` and `backend/src/lib/fallback_strategies.py`
+- [x] T015 [US2] Implement Low-Confidence Gate (< 0.70) in `backend/src/api/orchestrate/intent.py` (depends on T012)
+- [x] T016 [US2] Implement logic to return exactly one clarification question on low confidence in `backend/src/api/orchestrate/intent.py` (depends on T015)
+- [x] T017 [US2] Add logging for User Story 2 operations in `backend/src/api/orchestrate/intent.py` and `backend/src/lib/fallback_strategies.py`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 

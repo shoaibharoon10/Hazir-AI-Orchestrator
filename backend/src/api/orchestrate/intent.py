@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Union
 
 from fastapi import APIRouter, status
@@ -40,13 +41,17 @@ async def parse_intent(request: IntentRequestSchema) -> Union[APIResponseSchema[
     Implements the Low-Confidence Gate: if confidence < 0.70, it stops execution
     and returns exactly ONE clarifying question.
     """
+    start_time = time.time()
     logger.info(f"Received intent parsing request for query: '{request.query}'")
     
     # 1. Parse using Gemini
     result = intent_parser.parse_raw_query(request.query)
     
+    execution_time = round(time.time() - start_time, 3)
+    
     if not result.success or not result.data:
         # Gemini parser failed completely (e.g., API error)
+        logger.error(f"Intent parsing failed completely after {execution_time}s. Error: {result.error}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=result.model_dump()
@@ -57,7 +62,7 @@ async def parse_intent(request: IntentRequestSchema) -> Union[APIResponseSchema[
     
     # 2. Implement Low-Confidence Gate Constraint (Confidence < 0.70)
     if confidence < 0.70:
-        logger.warning(f"Low confidence ({confidence}) detected. Triggering clarification.")
+        logger.warning(f"Low confidence ({confidence}) detected after {execution_time}s. Triggering clarification gate.")
         # Returning exactly ONE clarifying question as mandated
         error_data = IntentErrorResponseSchema(
             error="Low confidence in parsing intent.",
@@ -72,5 +77,5 @@ async def parse_intent(request: IntentRequestSchema) -> Union[APIResponseSchema[
             ).model_dump()
         )
 
-    logger.info("Successfully extracted intent with high confidence.")
+    logger.info(f"Successfully extracted intent with high confidence ({confidence}) in {execution_time}s.")
     return result
