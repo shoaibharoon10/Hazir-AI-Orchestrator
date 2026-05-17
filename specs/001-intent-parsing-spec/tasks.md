@@ -37,9 +37,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Implement initial Pydantic `IntentExtractionSchema` in `backend/src/schemas/intent.py` (depends on T002)
-- [ ] T006 Implement base FastAPI endpoint in `backend/src/api/orchestrate/intent.py` using `IntentExtractionSchema` (depends on T001, T005)
-- [ ] T007 Implement basic Gemini API call in `backend/src/nlp_helpers/gemini_parser.py` (depends on T003)
+- [x] T005 Implement initial Pydantic `IntentExtractionSchema` in `backend/src/schemas/intent.py` (depends on T002)
+- [x] T006 Implement base FastAPI endpoint in `backend/src/api/orchestrate/intent.py` using `IntentExtractionSchema` (depends on T001, T005)
+- [x] T007 Implement basic Gemini API call in `backend/src/nlp_helpers/gemini_parser.py` (depends on T003)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
