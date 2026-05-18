@@ -38,5 +38,5 @@ This checklist outlines the sequential implementation plan for the 004-booking-s
 
 **Goal**: Execution timing logging telemetry and Git check-in automation.
 
-- [ ] T013 Implement execution time logging (in ms) inside `backend/src/api/orchestrate/booking.py`
-- [ ] T014 Perform final automated Git Check-in and mark User Story completions in `specs/004-booking-simulation/tasks.md`
+- [x] T013 Implement execution time logging (in ms) inside `backend/src/api/orchestrate/booking.py`
+- [x] T014 Perform final automated Git Check-in and mark User Story completions in `specs/004-booking-simulation/tasks.md`

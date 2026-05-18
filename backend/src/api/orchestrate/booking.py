@@ -39,7 +39,8 @@ async def create_booking(request: BookingRequestInput) -> Union[APIResponseSchem
         booking_data = booking_service.create_booking(request)
         
         exec_time_ms = round((time.time() - start_time) * 1000, 2)
-        logger.info(f"Successfully finalized booking {booking_data['booking_id']} in {exec_time_ms}ms.")
+        final_state = booking_data.get('current_status', 'unknown')
+        logger.info(f"Successfully finalized booking {booking_data['booking_id']} state transition (pending -> {final_state}) in {exec_time_ms}ms.")
         
         return APIResponseSchema(
             success=True,
@@ -48,7 +49,7 @@ async def create_booking(request: BookingRequestInput) -> Union[APIResponseSchem
         
     except DoubleBookingError as e:
         exec_time_ms = round((time.time() - start_time) * 1000, 2)
-        logger.warning(f"Double booking trapped after {exec_time_ms}ms: {str(e)}")
+        logger.warning(f"Double-booking collision trapped after {exec_time_ms}ms: {str(e)}")
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content=APIResponseSchema(
