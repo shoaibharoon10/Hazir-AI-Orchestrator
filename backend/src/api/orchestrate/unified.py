@@ -39,7 +39,7 @@ async def execute_master_workflow(request: UnifiedOrchestratorInput) -> Union[AP
         pipeline_output = unified_service.run_pipeline(request)
         
         exec_time_ms = round((time.time() - start_time) * 1000, 2)
-        logger.info(f"Master pipeline completed successfully in {exec_time_ms}ms. Booking ID: {pipeline_output.booking_summary.booking_id}")
+        logger.info(f"Total end-to-end orchestration completed successfully in {exec_time_ms}ms. Booking ID locked: {pipeline_output.booking_summary.booking_id}")
         
         return APIResponseSchema(
             success=True,
@@ -48,7 +48,7 @@ async def execute_master_workflow(request: UnifiedOrchestratorInput) -> Union[AP
         
     except OrchestrationError as e:
         exec_time_ms = round((time.time() - start_time) * 1000, 2)
-        logger.warning(f"Master pipeline aborted gracefully at stage '{e.stage}' after {exec_time_ms}ms: {e.message}")
+        logger.warning(f"Orchestration rollback trap triggered gracefully at stage '{e.stage}' after {exec_time_ms}ms: {e.message}")
         
         # Returning a 400 Bad Request since it's a known logic abort (e.g., 0-match, double booking)
         # We also include partial data if any stages succeeded before the abort

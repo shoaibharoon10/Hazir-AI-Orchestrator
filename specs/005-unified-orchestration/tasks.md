@@ -36,5 +36,5 @@ This checklist outlines the sequential implementation plan for the 005-unified-o
 
 **Goal**: Final Polish, compiling total millisecond pipeline metrics logging, and Git automation check-in.
 
-- [ ] T011 Implement E2E execution time logging (in ms) inside `backend/src/api/orchestrate/unified.py`
-- [ ] T012 Perform final automated Git Check-in and mark User Story completions in `specs/005-unified-orchestration/tasks.md`
+- [x] T011 Implement E2E execution time logging (in ms) inside `backend/src/api/orchestrate/unified.py`
+- [x] T012 Perform final automated Git Check-in and mark User Story completions in `specs/005-unified-orchestration/tasks.md`
