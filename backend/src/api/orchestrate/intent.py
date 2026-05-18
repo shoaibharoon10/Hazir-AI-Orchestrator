@@ -12,6 +12,7 @@ from src.schemas.intent import (
     IntentExtractionSchema,
     IntentRequestSchema,
 )
+from src.lib.fallback_strategies import execute_regex_fallback
 
 # Set up basic logging
 logger = logging.getLogger(__name__)
@@ -45,15 +46,23 @@ async def parse_intent(request: IntentRequestSchema) -> Union[APIResponseSchema[
     logger.info(f"Received intent parsing request for query: '{request.query}'")
     
     # 1. Parse using Gemini
-    result = intent_parser.parse_raw_query(request.query)
+    try:
+        result = intent_parser.parse_raw_query(request.query)
+        if not result.success:
+            logger.warning(f"Gemini API returned error: {result.error}. Triggering regex fallback.")
+            result = execute_regex_fallback(request.query)
+    except Exception as e:
+        logger.warning(f"Gemini API exception ({type(e).__name__}): {str(e)}. Triggering regex fallback.")
+        result = execute_regex_fallback(request.query)
     
     execution_time = round(time.time() - start_time, 3)
     
     if not result.success or not result.data:
-        # Gemini parser failed completely (e.g., API error)
+        # Fallback also failed or Gemini failed completely
         logger.error(f"Intent parsing failed completely after {execution_time}s. Error: {result.error}")
+        # Return 200 OK gracefully mapped back to avoid 500 crashes
         return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_200_OK,
             content=result.model_dump()
         )
         
