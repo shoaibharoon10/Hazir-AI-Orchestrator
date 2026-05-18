@@ -22,17 +22,17 @@ This checklist outlines the sequential implementation plan for the 004-booking-s
 
 **Goal**: Pytest client setups evaluating concurrency blocks, double-booking prevention, and state mutations.
 
-- [ ] T007 [P] [US1] Create Pytest scaffolding in `backend/tests/integration/test_booking.py`
-- [ ] T008 [US1] Implement Acceptance Scenario testing standard booking confirmation and ID generation in `backend/tests/integration/test_booking.py`
-- [ ] T009 [US2] Implement Acceptance Scenario testing deterministic double-booking rejection in `backend/tests/integration/test_booking.py`
+- [x] T007 [P] [US1] Create Pytest scaffolding in `backend/tests/integration/test_booking.py`
+- [x] T008 [US1] Implement Acceptance Scenario testing standard booking confirmation and ID generation in `backend/tests/integration/test_booking.py`
+- [x] T009 [US2] Implement Acceptance Scenario testing deterministic double-booking rejection in `backend/tests/integration/test_booking.py`
 
 ## Phase 4: Endpoint Wiring
 
 **Goal**: Mount the booking system to the FastAPI router with universal APIResponseSchema wrapper.
 
-- [ ] T010 [US1] Create FastAPI router endpoint `/api/orchestrate/book` in `backend/src/api/orchestrate/booking.py`
-- [ ] T011 [US1] Connect `BookingService` execution to the `/api/orchestrate/book` route with graceful state-conflict error trapping in `backend/src/api/orchestrate/booking.py`
-- [ ] T012 [US1] Register booking router inside the primary application entrypoint in `backend/main.py`
+- [x] T010 [US1] Create FastAPI router endpoint `/api/orchestrate/book` in `backend/src/api/orchestrate/booking.py`
+- [x] T011 [US1] Connect `BookingService` execution to the `/api/orchestrate/book` route with graceful state-conflict error trapping in `backend/src/api/orchestrate/booking.py`
+- [x] T012 [US1] Register booking router inside the primary application entrypoint in `backend/main.py`
 
 ## Phase N: Polish & Cross-Cutting Concerns
 

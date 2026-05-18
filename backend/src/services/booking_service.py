@@ -87,5 +87,5 @@ class BookingService:
             "provider_id": provider_id,
             "current_status": final_state,
             "net_price": request_input.dynamic_price,
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
         }

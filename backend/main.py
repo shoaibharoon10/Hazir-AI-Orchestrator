@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.orchestrate.intent import router as intent_router
 from src.api.orchestrate.matching import router as matching_router
 from src.api.orchestrate.pricing import router as pricing_router
+from src.api.orchestrate.booking import router as booking_router
 
 app = FastAPI(
     title="AI Service Orchestrator API",
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(intent_router)
 app.include_router(matching_router)
 app.include_router(pricing_router)
+app.include_router(booking_router)
 
 @app.get("/health")
 def health_check():
