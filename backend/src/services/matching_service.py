@@ -1,162 +1,97 @@
 import math
 import logging
+import random
 from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate the great circle distance in kilometers between two points on the earth."""
-    R = 6371.0 # Earth radius in km
-    
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    
-    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
-    return R * c
-
-# Mock Geocoder for Karachi areas
-LOCATION_COORDS = {
-    "clifton block 9": (24.8166, 67.0236),
-    "dha phase 6": (24.8016, 67.0425),
-    "gulshan": (24.9180, 67.0971),
-    "johar": (24.9142, 67.1256),
-    "default": (24.8607, 67.0011) # Central Karachi
+# Karachi Centroids Vector Map (Latitude, Longitude)
+KARACHI_CENTROIDS = {
+    "clifton": (24.82, 67.03),
+    "sadar": (24.86, 67.01),
+    "gulshan": (24.92, 67.09),
+    "johar": (24.91, 67.12),
+    "nazimabad": (24.93, 67.03),
+    "dha": (24.79, 67.06)
 }
 
 class ProviderMatchingEngine:
-    """
-    Deterministic matching engine executing the 6-factor algorithm to rank providers.
-    """
-    def __init__(self) -> None:
-        self.MAX_DISTANCE_KM = 30.0
-        self.WEIGHT_DISTANCE = 0.30
-        self.WEIGHT_RATING = 0.25
-        self.WEIGHT_RELIABILITY = 0.25
-        self.WEIGHT_SKILLS = 0.10
-        self.WEIGHT_RECENCY = 0.10
+    def __init__(self):
+        # 50 dynamic, realistic providers dataset generation
+        self.providers = self._seed_50_providers()
 
-    def resolve_location(self, location_context: Optional[str]) -> tuple[float, float]:
-        if not location_context:
-            return LOCATION_COORDS["default"]
+    def _seed_50_providers(self) -> List[Dict[str, Any]]:
+        categories = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair"]
+        names_prefix = ["Ali", "Khan", "Ahmed", "Karachi", "Express", "Smart", "Quick", "Super", "Zain", "Raza"]
+        names_suffix = ["HVAC", "Plumbing", "Electric", "Fixers", "Services", "Experts", "Solutions", "Brothers"]
+        locations = list(KARACHI_CENTROIDS.keys())
+        tiers = ["gold", "silver", "standard"]
         
-        loc_lower = location_context.lower()
-        for key, coords in LOCATION_COORDS.items():
-            if key in loc_lower:
-                return coords
-        return LOCATION_COORDS["default"]
-
-    def calculate_distance_score(self, distance_km: float) -> float:
-        if distance_km > self.MAX_DISTANCE_KM:
-            return 0.0
-        # Closer is better. 0 km = 1.0, MAX_DISTANCE = 0.0
-        return max(0.0, 1.0 - (distance_km / self.MAX_DISTANCE_KM))
-
-    def evaluate_availability(self, time_preference: Optional[str], provider_schedules: List[Dict]) -> bool:
-        """
-        Matrix availability check.
-        For MVP, if provider has any schedule block, we assume overlapping availability.
-        """
-        if not time_preference:
-            return True
-        return len(provider_schedules) > 0
-
-    def calculate_rating_score(self, rating: float) -> float:
-        # Rating is out of 5.0
-        return max(0.0, min(1.0, rating / 5.0))
-
-    def calculate_reliability_score(self, reliability: float, cancellation: float) -> float:
-        # High reliability is good, high cancellation is penalizing.
-        base = reliability - (cancellation * 0.5)
-        return max(0.0, min(1.0, base))
-
-    def calculate_recency_score(self, review_recency_days: float) -> float:
-        # Closer to 0 days is better. > 30 days = 0 score.
-        if review_recency_days > 30:
-            return 0.0
-        return max(0.0, 1.0 - (review_recency_days / 30.0))
-
-    def calculate_skill_score(self, query_context: str, specializations: List[str]) -> float:
-        # Map specific technical tags
-        if not query_context:
-            return 0.5 
-            
-        q_lower = query_context.lower()
-        matches = [s for s in specializations if s.lower() in q_lower or q_lower in s.lower()]
+        seeded = []
+        random.seed(101) # Deterministic data across tests
         
-        if matches:
-            return 1.0
-        return 0.0
-
-    def match_and_rank(self, request: Any, providers: List[Dict], schedules: List[Dict]) -> List[Dict]:
-        """
-        Applies the 6-factor algorithm to score and rank candidate providers.
-        Returns array of ranked providers sorted by composite_score.
-        """
-        user_lat, user_lon = self.resolve_location(request.location_context)
-        ranked_providers = []
-
-        for provider in providers:
-            # 1. Geospatial Distance (Haversine)
-            prov_lat = provider.get('distanceVectors', {}).get('lat', user_lat)
-            prov_lon = provider.get('distanceVectors', {}).get('lng', user_lon)
-            dist_km = haversine_distance(user_lat, user_lon, prov_lat, prov_lon)
+        for i in range(1, 51):
+            category = categories[i % len(categories)]
+            base_loc = locations[i % len(locations)]
+            centroid_lat, centroid_lon = KARACHI_CENTROIDS[base_loc]
             
-            # 2. Matching Availability Matrix
-            prov_schedules = [s for s in schedules if s.get('providerId') == provider.get('id')]
-            is_available = self.evaluate_availability(request.time_preference, prov_schedules)
+            # Adding slight coordinate variance so providers aren't exactly on top of each other
+            lat = centroid_lat + random.uniform(-0.015, 0.015)
+            lon = centroid_lon + random.uniform(-0.015, 0.015)
             
-            if not is_available:
-                continue # Strictly exclude unavailable providers
-                
-            dist_score = self.calculate_distance_score(dist_km)
+            name = f"{random.choice(names_prefix)} {random.choice(names_suffix)} #{100 + i}"
+            rating = round(random.uniform(3.8, 5.0), 1)
+            tier = random.choice(tiers)
             
-            # 3. Global Rating Weights
-            rating_score = self.calculate_rating_score(provider.get('rating', 0.0))
-            
-            # 4. Review Recency Scoring
-            recency_score = self.calculate_recency_score(provider.get('reviewRecency', 30.0))
-            
-            # 5. Historical Reliability Data
-            reliability_score = self.calculate_reliability_score(
-                provider.get('reliabilityScore', 0.0),
-                provider.get('cancellationRate', 0.0)
-            )
-            
-            # 6. Technical Skill Specialization
-            skill_score = self.calculate_skill_score(request.service_category, provider.get('specializations', []))
-
-            # Composite Normalized Score
-            composite_score = (
-                (dist_score * self.WEIGHT_DISTANCE) +
-                (rating_score * self.WEIGHT_RATING) +
-                (reliability_score * self.WEIGHT_RELIABILITY) +
-                (skill_score * self.WEIGHT_SKILLS) +
-                (recency_score * self.WEIGHT_RECENCY)
-            )
-            
-            # Urgency penalty: If urgent, penalize providers that are far
-            if request.urgency_level in ["urgent", "very urgent"] and dist_km > 10.0:
-                composite_score *= 0.8
-
-            ranked_providers.append({
-                "id": provider.get('id'),
-                "name": provider.get('name'),
-                "category": provider.get('category'),
-                "composite_score": round(composite_score, 3),
-                "distance_km": round(dist_km, 2),
-                "matched_skills": provider.get('specializations', []),
-                "is_available": is_available
+            seeded.append({
+                "provider_id": f"PRO-{1000 + i}",
+                "name": name,
+                "category": category,
+                "base_location": base_loc,
+                "latitude": lat,
+                "longitude": lon,
+                "rating": rating,
+                "tier": tier
             })
+        return seeded
 
-        # Sort descending by composite score
-        ranked_providers.sort(key=lambda x: x['composite_score'], reverse=True)
+    def match_providers(self, category: str, location_text: str) -> List[Dict[str, Any]]:
+        normalized_loc = location_text.lower().strip()
         
-        # Check for ties at the top
-        if len(ranked_providers) > 1 and ranked_providers[0]['composite_score'] == ranked_providers[1]['composite_score']:
-            logger.warning(f"Tie detected for top score ({ranked_providers[0]['composite_score']}). Secondary tie-breaker sorting by distance applied.")
-            # Secondary sort: primary by score desc, secondary by distance asc
-            ranked_providers.sort(key=lambda x: (-x['composite_score'], x['distance_km']))
-            
-        return ranked_providers
+        # Default user centroid if location text token is not matched directly
+        user_lat, user_lon = KARACHI_CENTROIDS.get("sadar") 
+        for loc_key, coords in KARACHI_CENTROIDS.items():
+            if loc_key in normalized_loc:
+                user_lat, user_lon = coords
+                break
+
+        matched_list = []
+        
+        # Filtering and calculating mathematical distance vector
+        for p in self.providers:
+            if p["category"].lower() == category.lower():
+                # Mathematical Straight-Line Vector Distance to Kilometer conversion (approx 111km per degree)
+                lat_diff = p["latitude"] - user_lat
+                lon_diff = p["longitude"] - user_lon
+                distance_km = round(math.sqrt(lat_diff**2 + lon_diff**2) * 111.0, 2)
+                
+                # Dynamic matching score based on distance and provider rating
+                # Less distance + higher rating = higher score
+                match_score = round((5.0 - (distance_km / 10.0)) * 0.6 + (p["rating"] * 0.4), 2)
+                match_score = max(0.1, min(1.0, match_score)) # Clamp between 0.1 and 1.0
+                
+                matched_list.append({
+                    "provider_id": p["provider_id"],
+                    "name": p["name"],
+                    "category": p["category"],
+                    "distance_km": max(1.2, distance_km), # Minimum floor boundary
+                    "rating": p["rating"],
+                    "tier": p["tier"],
+                    "match_score": match_score
+                })
+        
+        # Sort dynamically by true Euclidean distance ascending (closest to farthest)
+        matched_list.sort(key=lambda x: x["distance_km"])
+        
+        logger.info(f"Geospatial Matching: Found {len(matched_list)} candidates for {category} near {location_text}")
+        return matched_list

@@ -14,7 +14,7 @@ class IntentRequestSchema(BaseModel):
     query: str = Field(..., description="The user's raw text request (can be mixed-language/Roman Urdu)")
 
 class IntentExtractionSchema(BaseModel):
-    service_category: Literal["AC Technician", "Electrician", "Plumber"] | None = Field(
+    service_category: Literal["AC Technician", "Electrician", "Plumber", "Beautician", "Appliance Repair"] | None = Field(
         None, description="The identified service category"
     )
     location_context: Optional[str] = Field(None, description="The location context extracted from the query")

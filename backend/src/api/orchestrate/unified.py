@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from src.schemas.intent import APIResponseSchema
 from src.schemas.unified import UnifiedOrchestratorInput, UnifiedOrchestratorOutput
-from src.services.unified_service import UnifiedOrchestratorService, OrchestrationError
+from src.services.unified_service import UnifiedOrchestratorService, OrchestrationError, SlotFillingError
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,17 @@ async def execute_master_workflow(request: UnifiedOrchestratorInput) -> Union[AP
             exec_time_ms=exec_time_ms
         )
         
+    except SlotFillingError as e:
+        exec_time_ms = round((time.time() - start_time) * 1000, 2)
+        logger.info(f"Conversational slot-filling prompted after {exec_time_ms}ms: {e.message}")
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "status": e.status,
+                "message": e.message,
+                "exec_time_ms": exec_time_ms
+            }
+        )
     except OrchestrationError as e:
         exec_time_ms = round((time.time() - start_time) * 1000, 2)
         logger.warning(f"Orchestration rollback trap triggered gracefully at stage '{e.stage}' after {exec_time_ms}ms: {e.message}")

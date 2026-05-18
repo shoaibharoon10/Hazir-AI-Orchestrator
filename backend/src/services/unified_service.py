@@ -23,6 +23,13 @@ class OrchestrationError(Exception):
         self.partial_data = partial_data
         super().__init__(self.message)
 
+class SlotFillingError(Exception):
+    """Custom exception for missing slots that need user clarification."""
+    def __init__(self, message: str, status: str = "prompt_for_missing"):
+        self.message = message
+        self.status = status
+        super().__init__(self.message)
+
 class UnifiedOrchestratorService:
     def __init__(self):
         self.intent_parser = GeminiIntentParser()
@@ -88,28 +95,53 @@ class UnifiedOrchestratorService:
         # Step 2: Provider Matching
         logger.info(f"[Unified Orchestrator] Starting provider matching for category: {intent_data.service_category}")
         
-        candidates = [p for p in self.MOCK_PROVIDERS if p.get('category') == intent_data.service_category]
-        schedules = [s for s in self.MOCK_SCHEDULES if s.get('providerId') in [c['id'] for c in candidates]]
+        extracted_location = intent_data.location_context or request.user_location
+        if not extracted_location or not extracted_location.strip() or "unknown" in extracted_location.lower():
+            raise SlotFillingError("Aap ne service select ki hai, lekin location nahi batayi. Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein taake hum kareebi options dhoond sakein.")
         
         urgency_bool = intent_data.urgency_level in ["urgent", "very urgent"]
         
-        matching_req = MatchingRequestSchema(
-            service_category=intent_data.service_category,
-            location_context=request.user_location,
-            time_preference=intent_data.time_preference,
-            urgency_level=intent_data.urgency_level
-        )
-        
-        matched_providers = self.matching_engine.match_and_rank(matching_req, candidates, schedules)
+        matched_providers = self.matching_engine.match_providers(intent_data.service_category, extracted_location)
         
         if not matched_providers:
             raise OrchestrationError(f"No providers found for category '{intent_data.service_category}'.", stage="matching", partial_data=output.model_dump())
             
+        # top_provider = matched_providers[0]
+        # output.assigned_provider = top_provider
+        # provider_id = top_provider["id"]
+        # distance_km = top_provider["distance_km"]
+
+        # 1. Top ranked provider uthaein
         top_provider = matched_providers[0]
-        output.assigned_provider = top_provider
-        provider_id = top_provider["id"]
+
+        # 2. Key Mismatch safe check (id vs provider_id)
+        provider_id = top_provider.get("id") or top_provider.get("provider_id")
         distance_km = top_provider["distance_km"]
-        
+
+        # 3. Schema alignment dictionary taiyar karein taake validation fail na ho
+        aligned_provider_data = {
+            "id": provider_id,
+            "name": top_provider["name"],
+            "category": top_provider["category"],
+            "distance_km": distance_km,
+            "rating": top_provider["rating"],
+            "tier": top_provider["tier"],
+            "match_score": top_provider.get("match_score", 1.0)
+        }
+        aligned_provider_data = {
+        "id": provider_id,
+        "name": top_provider["name"],
+        "category": top_provider["category"],
+        "distance_km": distance_km,
+        "rating": top_provider["rating"],
+        "tier": top_provider["tier"],
+        "match_score": top_provider.get("match_score", 1.0)
+        }
+
+        # 4. Output state ko data assign karein
+        output.assigned_provider = aligned_provider_data
+
+
         # Step 3: Dynamic Pricing
         logger.info(f"[Unified Orchestrator] Starting price calculation for provider: {provider_id}")
         
