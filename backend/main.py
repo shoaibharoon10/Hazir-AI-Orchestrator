@@ -42,4 +42,4 @@ def health_check():
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard(request: Request):
     """Serve the sleek UI dashboard"""
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="dashboard.html")
