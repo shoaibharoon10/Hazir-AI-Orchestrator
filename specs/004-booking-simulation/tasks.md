@@ -6,17 +6,17 @@ This checklist outlines the sequential implementation plan for the 004-booking-s
 
 **Goal**: Define Pydantic structures for BookingRequestInput and BookingSummaryOutput.
 
-- [ ] T001 Define `BookingRequestInput` schema in `backend/src/schemas/booking.py`
-- [ ] T002 Define `BookingSummaryOutput` schema in `backend/src/schemas/booking.py`
+- [x] T001 Define `BookingRequestInput` schema in `backend/src/schemas/booking.py`
+- [x] T002 Define `BookingSummaryOutput` schema in `backend/src/schemas/booking.py`
 
 ## Phase 2: Finite State Machine Logic
 
 **Goal**: Implement deterministic transitions for pending -> confirmed -> en_route -> completed in pure Python.
 
-- [ ] T003 [US1] Scaffold `BookingService` base class and FSM state variables in `backend/src/services/booking_service.py`
-- [ ] T004 [US1] Implement valid state transition logic (pending -> confirmed -> en_route -> completed) in `backend/src/services/booking_service.py`
-- [ ] T005 [US2] Implement deterministic double-booking prevention matrix (in-memory lock checking) in `backend/src/services/booking_service.py`
-- [ ] T006 [US1] Implement simulated follow-up notification event logging on state transitions in `backend/src/services/booking_service.py`
+- [x] T003 [US1] Scaffold `BookingService` base class and FSM state variables in `backend/src/services/booking_service.py`
+- [x] T004 [US1] Implement valid state transition logic (pending -> confirmed -> en_route -> completed) in `backend/src/services/booking_service.py`
+- [x] T005 [US2] Implement deterministic double-booking prevention matrix (in-memory lock checking) in `backend/src/services/booking_service.py`
+- [x] T006 [US1] Implement simulated follow-up notification event logging on state transitions in `backend/src/services/booking_service.py`
 
 ## Phase 3: Integration Tests Blueprint
 
