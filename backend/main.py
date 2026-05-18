@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 from src.api.orchestrate.intent import router as intent_router
 from src.api.orchestrate.matching import router as matching_router
@@ -12,6 +15,9 @@ app = FastAPI(
     description="Core backend for orchestrating AI intents and matching providers.",
     version="1.0.0"
 )
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "src", "templates"))
 
 # Configure CORS
 app.add_middleware(
@@ -32,3 +38,8 @@ app.include_router(unified_router)
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_dashboard(request: Request):
+    """Serve the sleek UI dashboard"""
+    return templates.TemplateResponse("dashboard.html", {"request": request})

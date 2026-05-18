@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased text-gray-900 bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Service Orchestrator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            900: '#134e4a',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .step-card {
+            transition: all 0.3s ease;
+        }
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(20, 184, 166, 0.2);
+            border-color: rgba(20, 184, 166, 0.5);
+        }
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-left-color: #14b8a6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-100 relative overflow-x-hidden pb-20">
+    <!-- Background Gradient Blob -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand-600/20 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
+    <div class="max-w-5xl mx-auto px-4 py-12">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold tracking-tight mb-4 bg-gradient-to-r from-brand-100 to-brand-500 bg-clip-text text-transparent">
+                AI Service Orchestrator
+            </h1>
+            <p class="text-gray-400 text-lg">Master Workflow Pipeline: Intent &rarr; Match &rarr; Price &rarr; Book</p>
+        </header>
+
+        <!-- Search Bar -->
+        <main class="w-full max-w-4xl mx-auto">
+            <form id="orchestratorForm" class="relative group max-w-3xl mx-auto">
+                <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" id="queryInput" required placeholder="e.g., mujhe ac theek karwana hai urgently clifton me" 
+                    class="w-full bg-gray-800/80 border border-gray-700 text-white rounded-2xl pl-12 pr-48 py-5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all shadow-lg placeholder-gray-500 text-lg">
+                <button type="submit" id="submitBtn" 
+                    class="absolute inset-y-2 right-2 bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-xl px-6 py-2 transition-colors flex items-center justify-center gap-2 w-40">
+                    <span id="btnText">Orchestrate</span>
+                    <div id="btnSpinner" class="spinner hidden"></div>
+                </button>
+            </form>
+
+            <!-- Error Alert -->
+            <div id="errorBanner" class="hidden mt-6 max-w-3xl mx-auto p-5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 flex items-start gap-4">
+                <svg class="w-6 h-6 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    <h3 class="font-semibold text-red-300" id="errorTitle">Transaction Aborted</h3>
+                    <p class="mt-1 text-sm text-red-200/80" id="errorMessage"></p>
+                </div>
+            </div>
+
+            <!-- Execution Badge -->
+            <div id="execBadgeWrapper" class="hidden flex justify-center mt-8">
+                <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-brand-900/40 border border-brand-500/30 text-brand-100 text-sm font-medium shadow-[0_0_20px_rgba(20,184,166,0.2)] animate-pulse-slow">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brand-400 shadow-[0_0_8px_rgba(20,184,166,1)]"></span>
+                    Execution Time: <span id="execTimeDisplay" class="font-bold text-brand-300 ml-1">-- ms</span>
+                </div>
+            </div>
+
+            <!-- Visualization Grid -->
+            <div id="resultsGrid" class="hidden mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Step 1: Intent -->
+                <div class="glass-panel step-card rounded-2xl p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 transition-transform group-hover:scale-110 duration-500">
+                        <svg class="w-24 h-24 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex items-center gap-3 mb-6 text-brand-400">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-brand-900/70 border border-brand-500/30 font-bold text-sm shadow-[0_0_10px_rgba(20,184,166,0.3)]">1</span>
+                        <h2 class="text-lg font-semibold text-white">Intent Extraction</h2>
+                    </div>
+                    <div class="space-y-4 text-sm text-gray-300 relative z-10">
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Category</span>
+                            <span class="font-medium text-white px-2 py-0.5 bg-gray-800 rounded" id="outCategory">--</span>
+                        </p>
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Location</span>
+                            <span class="font-medium text-white" id="outLocation">--</span>
+                        </p>
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Urgency</span>
+                            <span class="font-medium px-2 py-0.5 rounded uppercase text-xs tracking-wider" id="outUrgency">--</span>
+                        </p>
+                        <p class="flex justify-between items-center">
+                            <span class="text-gray-400">Confidence</span>
+                            <span class="font-bold text-brand-300 bg-brand-900/30 px-2 py-0.5 rounded" id="outConfidence">--</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Matching -->
+                <div class="glass-panel step-card rounded-2xl p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 transition-transform group-hover:scale-110 duration-500">
+                        <svg class="w-24 h-24 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
+                    </div>
+                    <div class="flex items-center gap-3 mb-6 text-brand-400">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-brand-900/70 border border-brand-500/30 font-bold text-sm shadow-[0_0_10px_rgba(20,184,166,0.3)]">2</span>
+                        <h2 class="text-lg font-semibold text-white">Provider Matching</h2>
+                    </div>
+                    <div class="space-y-4 text-sm text-gray-300 relative z-10">
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Assigned To</span>
+                            <span class="font-medium text-white px-2 py-0.5 bg-gray-800 rounded truncate max-w-[160px]" id="outProvName">--</span>
+                        </p>
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Distance</span>
+                            <span class="font-medium text-white" id="outDistance">-- km</span>
+                        </p>
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Provider Rating</span>
+                            <span class="font-medium text-yellow-400 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                <span id="outRating">-- / 5.0</span>
+                            </span>
+                        </p>
+                        <p class="flex justify-between items-center">
+                            <span class="text-gray-400">Global Score</span>
+                            <span class="font-bold text-brand-300 bg-brand-900/30 px-2 py-0.5 rounded" id="outScore">--</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3: Pricing -->
+                <div class="glass-panel step-card rounded-2xl p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 transition-transform group-hover:scale-110 duration-500">
+                        <svg class="w-24 h-24 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex items-center gap-3 mb-6 text-brand-400">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-brand-900/70 border border-brand-500/30 font-bold text-sm shadow-[0_0_10px_rgba(20,184,166,0.3)]">3</span>
+                        <h2 class="text-lg font-semibold text-white">Dynamic Pricing</h2>
+                    </div>
+                    <div class="space-y-4 text-sm text-gray-300 relative z-10">
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Base Price</span>
+                            <span class="font-medium text-white" id="outBasePrice">--</span>
+                        </p>
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Surge Factor</span>
+                            <span class="font-medium text-red-400 bg-red-900/20 px-1 rounded" id="outSurge">--</span>
+                        </p>
+                        <p class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                            <span class="text-gray-400">Distance Buffer</span>
+                            <span class="font-medium text-gray-200" id="outDistBuffer">--</span>
+                        </p>
+                        <p class="flex justify-between items-center">
+                            <span class="text-gray-300 font-medium">Net Total</span>
+                            <span class="font-bold text-brand-300 text-lg tracking-wide drop-shadow-[0_0_5px_rgba(20,184,166,0.5)]" id="outTotal">PKR --</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 4: Booking -->
+                <div class="glass-panel step-card rounded-2xl p-6 relative overflow-hidden group border-brand-500/30">
+                    <div class="absolute inset-0 bg-gradient-to-br from-brand-900/20 to-transparent pointer-events-none"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10 transition-transform group-hover:scale-110 duration-500">
+                        <svg class="w-24 h-24 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.441A11.026 11.026 0 001 7.155V16a2 2 0 002 2h14a2 2 0 002-2V7.155a11.032 11.032 0 00-5.267-3.714.75.75 0 00-.5.002A11.022 11.022 0 008.5 4.5c-1.309 0-2.58-.22-3.733-.64a.75.75 0 00-.5-.001zm.996 2.45a9.5 9.5 0 017.474 0 9.508 9.508 0 013.763 2.923V16.5H1.5V8.814a9.507 9.507 0 013.763-2.923zM5.5 10.5a.75.75 0 011.5 0v2.5a.75.75 0 01-1.5 0v-2.5zm4 0a.75.75 0 011.5 0v2.5a.75.75 0 01-1.5 0v-2.5zm4 0a.75.75 0 011.5 0v2.5a.75.75 0 01-1.5 0v-2.5z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex items-center gap-3 mb-6 text-brand-400">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-brand-900/70 border border-brand-500/30 font-bold text-sm shadow-[0_0_10px_rgba(20,184,166,0.3)]">4</span>
+                        <h2 class="text-lg font-semibold text-white">Booking Confirmation</h2>
+                    </div>
+                    <div class="space-y-4 text-sm text-gray-300 relative z-10 flex flex-col h-full">
+                        <div class="mb-2">
+                            <span class="block text-gray-400 mb-2 text-xs uppercase tracking-wider font-semibold">Allocated Slot ID</span>
+                            <div class="font-mono text-xl font-bold text-brand-100 tracking-[0.2em] bg-gray-900/80 px-4 py-2 rounded-lg inline-block border border-gray-700/50 shadow-inner" id="outBookingId">
+                                --
+                            </div>
+                        </div>
+                        <p class="flex justify-between items-center border-t border-gray-700/50 pt-3">
+                            <span class="text-gray-400">FSM State</span>
+                            <span class="font-semibold text-brand-400 uppercase tracking-widest text-xs flex items-center gap-2" id="outState">
+                                <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                                --
+                            </span>
+                        </p>
+                        <p class="flex flex-col mt-auto pt-2">
+                            <span class="text-gray-500 text-[11px] uppercase tracking-wider mb-1">Timestamp (UTC)</span>
+                            <span class="font-medium text-gray-400 text-xs" id="outTimestamp">--</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const form = document.getElementById('orchestratorForm');
+        const input = document.getElementById('queryInput');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const resultsGrid = document.getElementById('resultsGrid');
+        const errorBanner = document.getElementById('errorBanner');
+        const errorTitle = document.getElementById('errorTitle');
+        const errorMessage = document.getElementById('errorMessage');
+        const execBadgeWrapper = document.getElementById('execBadgeWrapper');
+        const execTimeDisplay = document.getElementById('execTimeDisplay');
+
+        function resetUI() {
+            errorBanner.classList.add('hidden');
+            resultsGrid.classList.add('hidden');
+            execBadgeWrapper.classList.add('hidden');
+        }
+
+        function setField(id, value) {
+            const el = document.getElementById(id);
+            if(el) {
+                // Keep the dot for outState
+                if(id === 'outState') {
+                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>${value}`;
+                } else {
+                    el.textContent = value || '--';
+                }
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = input.value.trim();
+            if(!query) return;
+
+            btnText.classList.add('hidden');
+            btnSpinner.classList.remove('hidden');
+            resetUI();
+
+            try {
+                const response = await fetch('/api/orchestrate/run-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        customer_id: 'CUST-WEB-101',
+                        user_location: 'Clifton Block 9' 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.exec_time_ms) {
+                    execTimeDisplay.textContent = `${data.exec_time_ms} ms`;
+                    execBadgeWrapper.classList.remove('hidden');
+                }
+
+                if (!response.ok || !data.success) {
+                    errorBanner.classList.remove('hidden');
+                    
+                    let stageText = '';
+                    if(data.data && data.data.error_stage) {
+                        stageText = `(Stage: ${data.data.error_stage.toUpperCase()})`;
+                    }
+                    
+                    errorTitle.textContent = `Transaction Aborted ${stageText}`;
+                    
+                    let msg = data.error || 'An unexpected server error occurred.';
+                    if(data.data && data.data.message) {
+                        msg += ` - ${data.data.message}`;
+                    }
+                    errorMessage.textContent = msg;
+                    return;
+                }
+
+                const p = data.data;
+
+                if (p.parsed_intent) {
+                    setField('outCategory', p.parsed_intent.service_category);
+                    setField('outLocation', p.parsed_intent.location_context);
+                    
+                    const urgEl = document.getElementById('outUrgency');
+                    urgEl.textContent = p.parsed_intent.urgency_level;
+                    if(p.parsed_intent.urgency_level === 'urgent' || p.parsed_intent.urgency_level === 'very urgent') {
+                        urgEl.className = 'font-medium px-2 py-0.5 rounded uppercase text-[10px] tracking-wider bg-red-900/30 text-red-400 border border-red-500/20';
+                    } else {
+                        urgEl.className = 'font-medium px-2 py-0.5 rounded uppercase text-[10px] tracking-wider bg-gray-800 text-gray-300';
+                    }
+
+                    setField('outConfidence', (p.parsed_intent.confidence_score * 100).toFixed(0) + '%');
+                }
+
+                if (p.assigned_provider) {
+                    setField('outProvName', p.assigned_provider.name);
+                    setField('outDistance', p.assigned_provider.distance_km + ' km');
+                    setField('outRating', p.assigned_provider.rating ? (p.assigned_provider.rating + ' / 5.0') : '--');
+                    setField('outScore', p.assigned_provider.composite_score);
+                }
+
+                if (p.price_breakdown) {
+                    setField('outBasePrice', `PKR ${p.price_breakdown.base_price.toFixed(2)}`);
+                    setField('outSurge', `+ PKR ${p.price_breakdown.surge_cost.toFixed(2)}`);
+                    setField('outDistBuffer', `+ PKR ${p.price_breakdown.distance_buffer.toFixed(2)}`);
+                    setField('outTotal', `PKR ${p.price_breakdown.net_total.toFixed(2)}`);
+                }
+
+                if (p.booking_summary) {
+                    setField('outBookingId', p.booking_summary.booking_id);
+                    setField('outState', p.booking_summary.current_status);
+                    
+                    const d = new Date(p.booking_summary.timestamp);
+                    const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const formattedTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit', second:'2-digit', timeZoneName: 'short' });
+                    setField('outTimestamp', `${formattedDate} • ${formattedTime}`);
+                }
+
+                resultsGrid.classList.remove('hidden');
+
+            } catch (err) {
+                errorBanner.classList.remove('hidden');
+                errorTitle.textContent = "Network Error";
+                errorMessage.textContent = "Failed to connect to the orchestrator node.";
+            } finally {
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
