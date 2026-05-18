@@ -22,17 +22,17 @@ This checklist outlines the sequential implementation plan for the 002-provider-
 
 **Goal**: Validate tie-breaking scenarios, geospatial bounds, and exact deterministic sorting.
 
-- [ ] T007 [P] [US1] Create Pytest scaffolding in `backend/tests/integration/test_matching_engine.py`
-- [ ] T008 [US1] Implement Acceptance Scenario 1 testing Haversine proximity and scoring ties in `backend/tests/integration/test_matching_engine.py`
-- [ ] T009 [US2] Implement Acceptance Scenario 2 testing 'No Providers Available' 0-match fallback in `backend/tests/integration/test_matching_engine.py`
+- [x] T007 [P] [US1] Create Pytest scaffolding in `backend/tests/integration/test_matching_engine.py`
+- [x] T008 [US1] Implement Acceptance Scenario 1 testing Haversine proximity and scoring ties in `backend/tests/integration/test_matching_engine.py`
+- [x] T009 [US2] Implement Acceptance Scenario 2 testing 'No Providers Available' 0-match fallback in `backend/tests/integration/test_matching_engine.py`
 
 ## Phase 4: Endpoint Wiring
 
 **Goal**: Connect the deterministic engine to the active FastAPI ecosystem.
 
-- [ ] T010 [US1] Create FastAPI router endpoints in `backend/src/api/orchestrate/matching.py`
-- [ ] T011 [US1] Connect `ProviderMatchingEngine` instance to the `/api/orchestrate/match` route in `backend/src/api/orchestrate/matching.py`
-- [ ] T012 [US2] Integrate `/api/orchestrate/match` fallback strategies to return structured 0-match arrays safely without HTTP 500 crashes.
+- [x] T010 [US1] Create FastAPI router endpoints in `backend/src/api/orchestrate/matching.py`
+- [x] T011 [US1] Connect `ProviderMatchingEngine` instance to the `/api/orchestrate/match` route in `backend/src/api/orchestrate/matching.py`
+- [x] T012 [US2] Integrate `/api/orchestrate/match` fallback strategies to return structured 0-match arrays safely without HTTP 500 crashes.
 
 ## Phase N: Polish & Cross-Cutting Concerns
 
