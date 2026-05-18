@@ -1,5 +1,8 @@
 from typing import Optional
+import logging
 from src.schemas.pricing import PricingRequestInput, PriceBreakdownOutput
+
+logger = logging.getLogger(__name__)
 
 class PricingService:
     """
@@ -34,6 +37,9 @@ class PricingService:
         calculated_surge = base_price * self.SURGE_MULTIPLIER
         max_surge = base_price * self.MAX_SURGE_CAP
         
+        if calculated_surge > max_surge:
+            logger.warning(f"Calculated surge ({calculated_surge}) exceeded maximum surge cap ({max_surge}). Clamping to max allowed surge.")
+            
         return min(calculated_surge, max_surge)
 
     def calculate_distance_buffer(self, distance_km: float) -> float:

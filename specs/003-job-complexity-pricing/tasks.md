@@ -40,5 +40,5 @@ This checklist outlines the sequential implementation plan for the 003-job-compl
 
 **Goal**: Execution timing metrics logging and Git automation.
 
-- [ ] T015 Implement execution time logging (in ms) inside `backend/src/api/orchestrate/pricing.py`
-- [ ] T016 Perform final automated Git Check-in and mark User Story completions in `specs/003-job-complexity-pricing/tasks.md`
+- [x] T015 Implement execution time logging (in ms) inside `backend/src/api/orchestrate/pricing.py`
+- [x] T016 Perform final automated Git Check-in and mark User Story completions in `specs/003-job-complexity-pricing/tasks.md`
