@@ -8,6 +8,7 @@ class APIResponseSchema(BaseModel, Generic[T]):
     success: bool
     data: Optional[T] = None
     error: Optional[str] = None
+    exec_time_ms: Optional[float] = None
 
 class IntentRequestSchema(BaseModel):
     query: str = Field(..., description="The user's raw text request (can be mixed-language/Roman Urdu)")

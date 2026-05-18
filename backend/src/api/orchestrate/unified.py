@@ -43,7 +43,8 @@ async def execute_master_workflow(request: UnifiedOrchestratorInput) -> Union[AP
         
         return APIResponseSchema(
             success=True,
-            data=pipeline_output
+            data=pipeline_output,
+            exec_time_ms=exec_time_ms
         )
         
     except OrchestrationError as e:
@@ -62,7 +63,8 @@ async def execute_master_workflow(request: UnifiedOrchestratorInput) -> Union[AP
             content=APIResponseSchema(
                 success=False,
                 error="Pipeline transaction aborted due to orchestration error.",
-                data=error_payload
+                data=error_payload,
+                exec_time_ms=exec_time_ms
             ).model_dump()
         )
     except Exception as e:
@@ -72,6 +74,7 @@ async def execute_master_workflow(request: UnifiedOrchestratorInput) -> Union[AP
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=APIResponseSchema(
                 success=False,
-                error=f"Internal master orchestrator crash: {str(e)}"
+                error=f"Internal master orchestrator crash: {str(e)}",
+                exec_time_ms=exec_time_ms
             ).model_dump()
         )
