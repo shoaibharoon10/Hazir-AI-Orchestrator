@@ -38,6 +38,6 @@ This checklist outlines the sequential implementation plan for the 002-provider-
 
 **Goal**: Traceability, runtime optimization, and automated snapshotting.
 
-- [ ] T013 Implement execution time logging and performance tracing in `backend/src/api/orchestrate/matching.py`
-- [ ] T014 Polish logger outputs with tie-breaking warnings in `backend/src/lib/matching_engine.py`
-- [ ] T015 Perform final automated Git Check-in automation and finalize User Story completions.
+- [x] T013 Implement execution time logging and performance tracing in `backend/src/api/orchestrate/matching.py`
+- [x] T014 Polish logger outputs with tie-breaking warnings in `backend/src/lib/matching_engine.py`
+- [x] T015 Perform final automated Git Check-in automation and finalize User Story completions.

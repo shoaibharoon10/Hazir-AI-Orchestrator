@@ -152,4 +152,11 @@ class ProviderMatchingEngine:
 
         # Sort descending by composite score
         ranked_providers.sort(key=lambda x: x['composite_score'], reverse=True)
+        
+        # Check for ties at the top
+        if len(ranked_providers) > 1 and ranked_providers[0]['composite_score'] == ranked_providers[1]['composite_score']:
+            logger.warning(f"Tie detected for top score ({ranked_providers[0]['composite_score']}). Secondary tie-breaker sorting by distance applied.")
+            # Secondary sort: primary by score desc, secondary by distance asc
+            ranked_providers.sort(key=lambda x: (-x['composite_score'], x['distance_km']))
+            
         return ranked_providers

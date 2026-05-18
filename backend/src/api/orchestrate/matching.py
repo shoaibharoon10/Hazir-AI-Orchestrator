@@ -72,10 +72,10 @@ async def match_providers(request: MatchingRequestSchema) -> Union[APIResponseSc
         
         ranked_results = matching_engine.match_and_rank(request, candidates, schedules)
         
-        exec_time = round(time.time() - start_time, 3)
+        exec_time_ms = round((time.time() - start_time) * 1000, 2)
         
         if not ranked_results:
-            logger.warning(f"No providers matched the criteria after {exec_time}s. Returning structured 0-match fallback.")
+            logger.warning(f"No providers matched the criteria after {exec_time_ms}ms. Returning structured 0-match fallback.")
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content=APIResponseSchema(
@@ -85,15 +85,15 @@ async def match_providers(request: MatchingRequestSchema) -> Union[APIResponseSc
                 ).model_dump()
             )
             
-        logger.info(f"Successfully ranked {len(ranked_results)} providers in {exec_time}s.")
+        logger.info(f"Successfully ranked {len(ranked_results)} providers in {exec_time_ms}ms.")
         return APIResponseSchema(
             success=True,
             data=ranked_results
         )
         
     except Exception as e:
-        exec_time = round(time.time() - start_time, 3)
-        logger.error(f"Error during matching engine execution after {exec_time}s: {str(e)}", exc_info=True)
+        exec_time_ms = round((time.time() - start_time) * 1000, 2)
+        logger.error(f"Error during matching engine execution after {exec_time_ms}ms: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=APIResponseSchema(
