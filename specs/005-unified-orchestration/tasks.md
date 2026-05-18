@@ -6,16 +6,16 @@ This checklist outlines the sequential implementation plan for the 005-unified-o
 
 **Goal**: Define Pydantic models for UnifiedOrchestratorInput accepting a raw query string, and UnifiedOrchestratorOutput returning the combined end-to-end execution breakdown.
 
-- [ ] T001 Define `UnifiedOrchestratorInput` schema in `backend/src/schemas/unified.py`
-- [ ] T002 Define `UnifiedOrchestratorOutput` schema in `backend/src/schemas/unified.py`
+- [x] T001 Define `UnifiedOrchestratorInput` schema in `backend/src/schemas/unified.py`
+- [x] T002 Define `UnifiedOrchestratorOutput` schema in `backend/src/schemas/unified.py`
 
 ## Phase 2: Master Controller Facade Engineering
 
 **Goal**: Implement the sequential pipeline manager that calls Intent, Match, Price, and Book services independently and passes tokens cleanly in pure Python.
 
-- [ ] T003 [US1] Scaffold `UnifiedOrchestratorService` in `backend/src/services/unified_service.py`
-- [ ] T004 [US1] Implement atomic sequence mapping: Intent Extraction -> Provider Matching -> Price Calculation -> Booking inside `backend/src/services/unified_service.py`
-- [ ] T005 [US2] Implement composite rollback handlers wrapping 0-match results and downstream FSM exceptions safely in pure Python without crashing the backend.
+- [x] T003 [US1] Scaffold `UnifiedOrchestratorService` in `backend/src/services/unified_service.py`
+- [x] T004 [US1] Implement atomic sequence mapping: Intent Extraction -> Provider Matching -> Price Calculation -> Booking inside `backend/src/services/unified_service.py`
+- [x] T005 [US2] Implement composite rollback handlers wrapping 0-match results and downstream FSM exceptions safely in pure Python without crashing the backend.
 
 ## Phase 3: Global E2E Integration Tests
 
