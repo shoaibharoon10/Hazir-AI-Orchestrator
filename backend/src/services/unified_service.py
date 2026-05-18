@@ -102,12 +102,19 @@ class UnifiedOrchestratorService:
         if not intent_data.service_category:
             agent_trace.append({"agent": "PlannerAgent", "thought": "Service category slot is missing", "action": "Triggered Slot-Filling Error"})
             raise SlotFillingError("Aapko kaunsi service chahye? Kindly specify karein (e.g., Plumber, AC Technician, etc.).", agent_trace=agent_trace)
+
+        loc_missing = not extracted_location or not extracted_location.strip() or "unknown" in extracted_location.lower()
+        time_missing = not intent_data.time_preference
+        
+        if loc_missing and time_missing:
+            agent_trace.append({"agent": "PlannerAgent", "thought": "Both location and time slots are missing", "action": "Triggered Slot-Filling Error"})
+            raise SlotFillingError("Aap ne service select ki hai, lekin location aur time nahi bataya. Kindly apna area (e.g., Clifton, Johar) aur time bataein.", agent_trace=agent_trace)
             
-        if not extracted_location or not extracted_location.strip() or "unknown" in extracted_location.lower():
+        if loc_missing:
             agent_trace.append({"agent": "PlannerAgent", "thought": "Location slot is missing or invalid", "action": "Triggered Slot-Filling Error"})
-            raise SlotFillingError("Aap ne service select ki hai, lekin location nahi batayi. Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein taake hum kareebi options dhoond sakein.", agent_trace=agent_trace)
+            raise SlotFillingError("Aap ne service select ki hai, lekin location (area) nahi batayi. Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein taake hum kareebi options dhoond sakein.", agent_trace=agent_trace)
             
-        if not intent_data.time_preference:
+        if time_missing:
              agent_trace.append({"agent": "PlannerAgent", "thought": "Time slot is missing", "action": "Triggered Slot-Filling Error"})
              raise SlotFillingError("Aap ne service select ki hai, lekin time nahi bataya. Kindly bataein aapko technician kab chahiye?", agent_trace=agent_trace)
         
@@ -158,6 +165,8 @@ class UnifiedOrchestratorService:
             urgency_flag=urgency_bool,
             loyalty_tier=None
         )
+        
+        agent_trace.append({"agent": "PricingAgent", "thought": f"Calculating dynamic surge and base pricing for {complexity_tier} tier with {distance_km}km distance", "action": "Computed Net Total"})
         price_breakdown = self.pricing_service.calculate_net_total(pricing_req)
         output.price_breakdown = price_breakdown
         

@@ -23,7 +23,13 @@ class ProviderMatchingEngine:
     def _seed_50_providers(self) -> List[Dict[str, Any]]:
         categories = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair"]
         names_prefix = ["Ali", "Khan", "Ahmed", "Karachi", "Express", "Smart", "Quick", "Super", "Zain", "Raza"]
-        names_suffix = ["HVAC", "Plumbing", "Electric", "Fixers", "Services", "Experts", "Solutions", "Brothers"]
+        category_suffixes = {
+            "AC Technician": ["HVAC", "AC Experts", "Cooling", "AC Solutions", "AC Repair"],
+            "Plumber": ["Plumbing", "Pipes", "Plumbers", "Leak Fixers", "Sanitary"],
+            "Electrician": ["Electric", "Wiring", "Sparks", "Electricians", "Power"],
+            "Beautician": ["Salon", "Beauty", "Makeup", "Glamour", "Aesthetics"],
+            "Appliance Repair": ["Appliance Fix", "Repairs", "Home Tech", "Appliances", "Fixers"]
+        }
         locations = list(KARACHI_CENTROIDS.keys())
         tiers = ["gold", "silver", "standard"]
         
@@ -39,7 +45,8 @@ class ProviderMatchingEngine:
             lat = centroid_lat + random.uniform(-0.015, 0.015)
             lon = centroid_lon + random.uniform(-0.015, 0.015)
             
-            name = f"{random.choice(names_prefix)} {random.choice(names_suffix)} #{100 + i}"
+            suffix = random.choice(category_suffixes[category])
+            name = f"{random.choice(names_prefix)} {suffix} #{100 + i}"
             rating = round(random.uniform(3.8, 5.0), 1)
             tier = random.choice(tiers)
             
