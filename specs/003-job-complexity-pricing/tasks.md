@@ -24,17 +24,17 @@ This checklist outlines the sequential implementation plan for the 003-job-compl
 
 **Goal**: Pytest scaffolding for edge cases like zero-distance validation, max surge cap, and decimal rounding.
 
-- [ ] T009 [P] [US1] Create Pytest scaffolding in `backend/tests/integration/test_pricing_engine.py`
-- [ ] T010 [US1] Implement Acceptance Scenario testing Basic Flat-Rate Computation without surge overrides in `backend/tests/integration/test_pricing_engine.py`
-- [ ] T011 [US2] Implement Acceptance Scenario testing Complex Job with Urgent Surge tracking max caps and precision floats in `backend/tests/integration/test_pricing_engine.py`
+- [x] T009 [P] [US1] Create Pytest scaffolding in `backend/tests/integration/test_pricing_engine.py`
+- [x] T010 [US1] Implement Acceptance Scenario testing Basic Flat-Rate Computation without surge overrides in `backend/tests/integration/test_pricing_engine.py`
+- [x] T011 [US2] Implement Acceptance Scenario testing Complex Job with Urgent Surge tracking max caps and precision floats in `backend/tests/integration/test_pricing_engine.py`
 
 ## Phase 4: Endpoint Wiring
 
 **Goal**: Mount the service engine to the FastAPI router with universal APIResponseSchema wrapper.
 
-- [ ] T012 [US1] Create FastAPI router endpoint `/api/orchestrate/price` in `backend/src/api/orchestrate/pricing.py`
-- [ ] T013 [US1] Connect `PricingService` execution to the `/api/orchestrate/price` route with graceful fallback error trapping in `backend/src/api/orchestrate/pricing.py`
-- [ ] T014 [US1] Register pricing router inside the primary application entrypoint in `backend/main.py`
+- [x] T012 [US1] Create FastAPI router endpoint `/api/orchestrate/price` in `backend/src/api/orchestrate/pricing.py`
+- [x] T013 [US1] Connect `PricingService` execution to the `/api/orchestrate/price` route with graceful fallback error trapping in `backend/src/api/orchestrate/pricing.py`
+- [x] T014 [US1] Register pricing router inside the primary application entrypoint in `backend/main.py`
 
 ## Phase N: Polish & Cross-Cutting Concerns
 
