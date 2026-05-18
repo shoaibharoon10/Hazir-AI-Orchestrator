@@ -21,16 +21,16 @@ This checklist outlines the sequential implementation plan for the 005-unified-o
 
 **Goal**: Pytest suite testing the holistic `/api/orchestrate/run-all` endpoint with raw Roman Urdu strings, validating successful downstream data flow.
 
-- [ ] T006 [P] [US1] Create Pytest scaffolding in `backend/tests/e2e/test_unified_workflow.py`
-- [ ] T007 [US1] Implement Acceptance Scenario testing successful raw text query to confirmed booking flow in `backend/tests/e2e/test_unified_workflow.py`
-- [ ] T008 [US2] Implement Acceptance Scenario testing graceful downstream aborts (e.g., zero providers matched) in `backend/tests/e2e/test_unified_workflow.py`
+- [x] T006 [P] [US1] Create Pytest scaffolding in `backend/tests/e2e/test_unified_workflow.py`
+- [x] T007 [US1] Implement Acceptance Scenario testing successful raw text query to confirmed booking flow in `backend/tests/e2e/test_unified_workflow.py`
+- [x] T008 [US2] Implement Acceptance Scenario testing graceful downstream aborts (e.g., zero providers matched) in `backend/tests/e2e/test_unified_workflow.py`
 
 ## Phase 4: Endpoint Wiring & Global Mount
 
 **Goal**: Expose the master POST router path at `/api/orchestrate/run-all` inside backend/main.py.
 
-- [ ] T009 [US1] Create FastAPI router endpoint `/api/orchestrate/run-all` in `backend/src/api/orchestrate/unified.py`
-- [ ] T010 [US1] Register unified router inside the primary application entrypoint in `backend/main.py`
+- [x] T009 [US1] Create FastAPI router endpoint `/api/orchestrate/run-all` in `backend/src/api/orchestrate/unified.py`
+- [x] T010 [US1] Register unified router inside the primary application entrypoint in `backend/main.py`
 
 ## Phase N: Polish & Cross-Cutting Concerns
 

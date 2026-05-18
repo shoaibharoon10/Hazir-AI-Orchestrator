@@ -91,11 +91,13 @@ class UnifiedOrchestratorService:
         candidates = [p for p in self.MOCK_PROVIDERS if p.get('category') == intent_data.service_category]
         schedules = [s for s in self.MOCK_SCHEDULES if s.get('providerId') in [c['id'] for c in candidates]]
         
+        urgency_bool = intent_data.urgency_level in ["urgent", "very urgent"]
+        
         matching_req = MatchingRequestSchema(
             service_category=intent_data.service_category,
-            user_location=request.user_location,
-            required_time_slot=intent_data.preferred_time_slot,
-            urgency_flag=intent_data.urgency_flag
+            location_context=request.user_location,
+            time_preference=intent_data.time_preference,
+            urgency_level=intent_data.urgency_level
         )
         
         matched_providers = self.matching_engine.match_and_rank(matching_req, candidates, schedules)
@@ -104,9 +106,9 @@ class UnifiedOrchestratorService:
             raise OrchestrationError(f"No providers found for category '{intent_data.service_category}'.", stage="matching", partial_data=output.model_dump())
             
         top_provider = matched_providers[0]
-        output.assigned_provider = top_provider.model_dump()
-        provider_id = top_provider.provider_id
-        distance_km = top_provider.calculated_distance_km
+        output.assigned_provider = top_provider
+        provider_id = top_provider["id"]
+        distance_km = top_provider["distance_km"]
         
         # Step 3: Dynamic Pricing
         logger.info(f"[Unified Orchestrator] Starting price calculation for provider: {provider_id}")
@@ -121,7 +123,7 @@ class UnifiedOrchestratorService:
             job_category=intent_data.service_category,
             complexity_tier=complexity_tier,
             distance_km=distance_km,
-            urgency_flag=intent_data.urgency_flag,
+            urgency_flag=urgency_bool,
             loyalty_tier=None
         )
         price_breakdown = self.pricing_service.calculate_net_total(pricing_req)
@@ -132,7 +134,7 @@ class UnifiedOrchestratorService:
         booking_req = BookingRequestInput(
             provider_id=provider_id,
             job_category=intent_data.service_category,
-            scheduled_time=intent_data.preferred_time_slot or datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            scheduled_time=intent_data.time_preference or datetime.datetime.now(datetime.timezone.utc).isoformat(),
             dynamic_price=price_breakdown.net_total,
             customer_id=request.customer_id,
             location_context=request.user_location
