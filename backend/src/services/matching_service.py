@@ -76,7 +76,7 @@ class ProviderMatchingEngine:
         
         # Filtering and calculating mathematical distance vector
         for p in self.providers:
-            if p["category"].lower() == category.lower():
+            if p["category"] == category:  # Strict exact string equality — no fuzzy matching
                 # Mathematical Straight-Line Vector Distance to Kilometer conversion (approx 111km per degree)
                 lat_diff = p["latitude"] - user_lat
                 lon_diff = p["longitude"] - user_lon

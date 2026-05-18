@@ -23,11 +23,11 @@ def mock_gemini_success(query: str) -> APIResponseSchema:
         )
     )
 
-def mock_gemini_0_match(query: str) -> APIResponseSchema:
+def mock_gemini_unsupported(query: str) -> APIResponseSchema:
     return APIResponseSchema(
         success=True,
         data=IntentExtractionSchema(
-            service_category="Plumber",
+            service_category=None,
             location_context="unknown",
             time_preference="2026-05-20T10:00:00Z",
             urgency_level="normal",
@@ -51,10 +51,8 @@ def test_unified_orchestration_flow_success(mock_parser):
     
     json_data = response.json()
     assert json_data["success"] is True
-    assert json_data["error"] is None
-    
     data = json_data["data"]
-    
+    assert data["status"] == "success"
     # 1. Intent Extraction Verification
     assert data["parsed_intent"]["service_category"] == "AC Technician"
     
@@ -74,10 +72,10 @@ def test_unified_orchestration_flow_success(mock_parser):
     assert len(data["follow_up_schedule"]) == 3
     assert "PlannerAgent" in [t["agent"] for t in data["agent_trace"]]
 
-@patch("src.services.unified_service.GeminiIntentParser.parse_raw_query", side_effect=mock_gemini_0_match)
-def test_unified_orchestration_rollback_failure(mock_parser):
+@patch("src.services.unified_service.GeminiIntentParser.parse_raw_query", side_effect=mock_gemini_unsupported)
+def test_unified_orchestration_unsupported_service(mock_parser):
     """
-    Acceptance Scenario: Tests graceful downstream aborts for a 0-match (category unknown).
+    Acceptance Scenario: Tests that unsupported/unrecognised categories return status='unsupported' with HTTP 200.
     """
     payload = {
         "query": "mujhe aik ninja chahye jo chat repair kare",
@@ -87,11 +85,11 @@ def test_unified_orchestration_rollback_failure(mock_parser):
     
     response = client.post("/api/orchestrate/run-all", json=payload)
     
-    # Expecting 200 OK with prompt_for_missing status
+    # Expecting HTTP 200 with status 'unsupported' (never 400/500)
     assert response.status_code == 200
     json_data = response.json()
-    assert json_data["status"] == "prompt_for_missing"
-    assert "location" in json_data["message"].lower() or "area" in json_data["message"].lower()
+    assert json_data["status"] == "unsupported"
+    assert "AC Technician" in json_data["message"]
     
     agent_trace = json_data["agent_trace"]
     assert len(agent_trace) > 0

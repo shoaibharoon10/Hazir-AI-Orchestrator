@@ -31,6 +31,16 @@ class SlotFillingError(Exception):
         self.agent_trace = agent_trace
         super().__init__(self.message)
 
+class UnsupportedServiceError(Exception):
+    """Custom exception for unrecognised or unsupported service categories."""
+    def __init__(self, message: str, agent_trace: list, status: str = "unsupported"):
+        self.message = message
+        self.status = status
+        self.agent_trace = agent_trace
+        super().__init__(self.message)
+
+ALLOWED_CATEGORIES = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair"]
+
 class UnifiedOrchestratorService:
     def __init__(self):
         self.intent_parser = GeminiIntentParser()
@@ -95,28 +105,32 @@ class UnifiedOrchestratorService:
             
         output.parsed_intent = intent_data
         
-        # PlannerAgent multi-turn slot filling check
         agent_trace.append({"agent": "PlannerAgent", "thought": "Validating mandatory slots: category, location, time", "action": "Performing Slot-Filling Check"})
         extracted_location = intent_data.location_context or request.user_location
-        
-        if not intent_data.service_category:
-            agent_trace.append({"agent": "PlannerAgent", "thought": "Service category slot is missing", "action": "Triggered Slot-Filling Error"})
-            raise SlotFillingError("Aapko kaunsi service chahye? Kindly specify karein (e.g., Plumber, AC Technician, etc.).", agent_trace=agent_trace)
 
+        # STEP A: Unsupported / unrecognised service category guard
+        if not intent_data.service_category or intent_data.service_category not in ALLOWED_CATEGORIES:
+            agent_trace.append({"agent": "PlannerAgent", "thought": f"Category '{intent_data.service_category}' is not in the supported list", "action": "Triggered Unsupported Service Error"})
+            raise UnsupportedServiceError(
+                "Maazrat! Hamare paas filhal yeh service operational nahi hai. Currently hum Karachi mein sirf in core vertical services ke sath deal kar rahe hain: AC Technician, Plumber, Electrician, Beautician, aur Appliance Repair.",
+                agent_trace=agent_trace
+            )
+
+        # STEP B: Location check is ALWAYS first — regardless of whether time is provided
         loc_missing = not extracted_location or not extracted_location.strip() or "unknown" in extracted_location.lower()
         time_missing = not intent_data.time_preference
-        
+
         if loc_missing and time_missing:
             agent_trace.append({"agent": "PlannerAgent", "thought": "Both location and time slots are missing", "action": "Triggered Slot-Filling Error"})
             raise SlotFillingError("Aap ne service select ki hai, lekin location aur time nahi bataya. Kindly apna area (e.g., Clifton, Johar) aur time bataein.", agent_trace=agent_trace)
-            
+
         if loc_missing:
-            agent_trace.append({"agent": "PlannerAgent", "thought": "Location slot is missing or invalid", "action": "Triggered Slot-Filling Error"})
+            agent_trace.append({"agent": "PlannerAgent", "thought": "Location slot is missing or invalid — blocking pipeline regardless of time slot", "action": "Triggered Slot-Filling Error"})
             raise SlotFillingError("Aap ne service select ki hai, lekin location (area) nahi batayi. Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein taake hum kareebi options dhoond sakein.", agent_trace=agent_trace)
-            
+
         if time_missing:
-             agent_trace.append({"agent": "PlannerAgent", "thought": "Time slot is missing", "action": "Triggered Slot-Filling Error"})
-             raise SlotFillingError("Aap ne service select ki hai, lekin time nahi bataya. Kindly bataein aapko technician kab chahiye?", agent_trace=agent_trace)
+            agent_trace.append({"agent": "PlannerAgent", "thought": "Time slot is missing", "action": "Triggered Slot-Filling Error"})
+            raise SlotFillingError("Aap ne service select ki hai, lekin time nahi bataya. Kindly bataein aapko technician kab chahiye?", agent_trace=agent_trace)
         
         # Agent 2: MatchingAgent
         agent_trace.append({"agent": "MatchingAgent", "thought": f"Calculating Euclidean distances for {intent_data.service_category} candidates near {extracted_location}", "action": "Invoked Geospatial Matching"})
