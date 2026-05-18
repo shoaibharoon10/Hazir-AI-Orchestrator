@@ -87,6 +87,15 @@
                 </button>
             </form>
 
+            <!-- Info Banner for Prompt -->
+            <div id="infoBanner" class="hidden mt-6 max-w-3xl mx-auto p-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 flex items-start gap-4 shadow-[0_0_15px_rgba(234,179,8,0.15)]">
+                <svg class="w-6 h-6 text-yellow-400 shrink-0 mt-0.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    <h3 class="font-semibold text-yellow-300">Agent Clarification Needed</h3>
+                    <p class="mt-1 text-sm text-yellow-100" id="infoMessage"></p>
+                </div>
+            </div>
+
             <!-- Error Alert -->
             <div id="errorBanner" class="hidden mt-6 max-w-3xl mx-auto p-5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 flex items-start gap-4">
                 <svg class="w-6 h-6 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -161,8 +170,12 @@
                             </span>
                         </p>
                         <p class="flex justify-between items-center">
-                            <span class="text-gray-400">Global Score</span>
+                            <span class="text-gray-400">Match Score</span>
                             <span class="font-bold text-brand-300 bg-brand-900/30 px-2 py-0.5 rounded" id="outScore">--</span>
+                        </p>
+                        <p class="flex flex-col mt-2 pt-2 border-t border-gray-700/50">
+                            <span class="text-gray-500 text-xs mb-1">Agent Reasoning</span>
+                            <span class="text-xs text-brand-200 italic" id="outReasoning">--</span>
                         </p>
                     </div>
                 </div>
@@ -236,6 +249,8 @@
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
         const resultsGrid = document.getElementById('resultsGrid');
+        const infoBanner = document.getElementById('infoBanner');
+        const infoMessage = document.getElementById('infoMessage');
         const errorBanner = document.getElementById('errorBanner');
         const errorTitle = document.getElementById('errorTitle');
         const errorMessage = document.getElementById('errorMessage');
@@ -244,8 +259,10 @@
 
         function resetUI() {
             errorBanner.classList.add('hidden');
+            infoBanner.classList.add('hidden');
             resultsGrid.classList.add('hidden');
             execBadgeWrapper.classList.add('hidden');
+            input.classList.remove('ring-2', 'ring-yellow-500', 'shadow-[0_0_15px_rgba(234,179,8,0.3)]');
         }
 
         function setField(id, value) {
@@ -281,13 +298,19 @@
                 });
 
                 const data = await response.json();
-                
                 if (data.exec_time_ms) {
                     execTimeDisplay.textContent = `${data.exec_time_ms} ms`;
                     execBadgeWrapper.classList.remove('hidden');
                 }
 
-                if (!response.ok || !data.success) {
+                if (data.status === 'prompt_for_missing') {
+                    infoBanner.classList.remove('hidden');
+                    infoMessage.textContent = data.message;
+                    input.classList.add('ring-2', 'ring-yellow-500', 'shadow-[0_0_15px_rgba(234,179,8,0.3)]');
+                    return;
+                }
+
+                if (data.status === 'error' || data.success === false || !response.ok) {
                     errorBanner.classList.remove('hidden');
                     
                     let stageText = '';
@@ -297,7 +320,7 @@
                     
                     errorTitle.textContent = `Transaction Aborted ${stageText}`;
                     
-                    let msg = data.error || 'An unexpected server error occurred.';
+                    let msg = data.error || data.message || 'An unexpected server error occurred.';
                     if(data.data && data.data.message) {
                         msg += ` - ${data.data.message}`;
                     }
@@ -326,7 +349,8 @@
                     setField('outProvName', p.assigned_provider.name);
                     setField('outDistance', p.assigned_provider.distance_km + ' km');
                     setField('outRating', p.assigned_provider.rating ? (p.assigned_provider.rating + ' / 5.0') : '--');
-                    setField('outScore', p.assigned_provider.composite_score);
+                    setField('outScore', p.assigned_provider.match_score);
+                    setField('outReasoning', p.assigned_provider.selection_reasoning || 'No specific reasoning provided.');
                 }
 
                 if (p.price_breakdown) {
