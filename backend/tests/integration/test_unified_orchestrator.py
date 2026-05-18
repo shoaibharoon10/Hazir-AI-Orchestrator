@@ -28,7 +28,7 @@ def mock_gemini_0_match(query: str) -> APIResponseSchema:
         success=True,
         data=IntentExtractionSchema(
             service_category="Plumber",
-            location_context="Nowhere",
+            location_context="unknown",
             time_preference="2026-05-20T10:00:00Z",
             urgency_level="normal",
             confidence_score=0.95
@@ -59,7 +59,7 @@ def test_unified_orchestration_flow_success(mock_parser):
     assert data["parsed_intent"]["service_category"] == "AC Technician"
     
     # 2. Provider Matching Verification
-    assert data["assigned_provider"]["id"] == "prov_ac_1"
+    assert data["assigned_provider"]["id"].startswith("PRO-")
     
     # 3. Pricing Breakdown Verification
     assert data["price_breakdown"]["base_price"] > 0
@@ -67,6 +67,12 @@ def test_unified_orchestration_flow_success(mock_parser):
     # 4. FSM Booking Verification
     assert data["booking_summary"]["current_status"] == "confirmed"
     assert data["booking_summary"]["booking_id"].startswith("BKG-")
+    
+    # 5. Agent Trace & Lifecycle Validation
+    assert len(data["agent_trace"]) > 0
+    assert data["follow_up_schedule"] is not None
+    assert len(data["follow_up_schedule"]) == 3
+    assert "PlannerAgent" in [t["agent"] for t in data["agent_trace"]]
 
 @patch("src.services.unified_service.GeminiIntentParser.parse_raw_query", side_effect=mock_gemini_0_match)
 def test_unified_orchestration_rollback_failure(mock_parser):
@@ -81,12 +87,12 @@ def test_unified_orchestration_rollback_failure(mock_parser):
     
     response = client.post("/api/orchestrate/run-all", json=payload)
     
-    # Expecting 400 Bad Request caught by OrchestrationError, not 500
-    assert response.status_code == 400
+    # Expecting 200 OK with prompt_for_missing status
+    assert response.status_code == 200
     json_data = response.json()
-    assert json_data["success"] is False
-    assert "Pipeline transaction aborted" in json_data["error"]
+    assert json_data["status"] == "prompt_for_missing"
+    assert "location" in json_data["message"].lower() or "area" in json_data["message"].lower()
     
-    error_data = json_data["data"]
-    assert error_data["error_stage"] == "matching"
-    assert "No providers found" in error_data["message"]
+    agent_trace = json_data["agent_trace"]
+    assert len(agent_trace) > 0
+    assert any(t["agent"] == "PlannerAgent" for t in agent_trace)

@@ -54,6 +54,7 @@ async def execute_master_workflow(request: UnifiedOrchestratorInput) -> Union[AP
             status_code=status.HTTP_200_OK,
             content={
                 "status": e.status,
+                "agent_trace": e.agent_trace,
                 "message": e.message,
                 "exec_time_ms": exec_time_ms
             }

@@ -11,7 +11,10 @@ class UnifiedOrchestratorInput(BaseModel):
     user_location: str
 
 class UnifiedOrchestratorOutput(BaseModel):
+    status: str = "success"
+    agent_trace: list[dict] = []
     parsed_intent: Optional[IntentExtractionSchema] = None
     assigned_provider: Optional[dict] = None
     price_breakdown: Optional[PriceBreakdownOutput] = None
     booking_summary: Optional[BookingSummaryOutput] = None
+    follow_up_schedule: Optional[list[dict]] = None

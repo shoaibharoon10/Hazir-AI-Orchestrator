@@ -25,9 +25,10 @@ class OrchestrationError(Exception):
 
 class SlotFillingError(Exception):
     """Custom exception for missing slots that need user clarification."""
-    def __init__(self, message: str, status: str = "prompt_for_missing"):
+    def __init__(self, message: str, agent_trace: list, status: str = "prompt_for_missing"):
         self.message = message
         self.status = status
+        self.agent_trace = agent_trace
         super().__init__(self.message)
 
 class UnifiedOrchestratorService:
@@ -71,8 +72,10 @@ class UnifiedOrchestratorService:
 
     def run_pipeline(self, request: UnifiedOrchestratorInput) -> UnifiedOrchestratorOutput:
         output = UnifiedOrchestratorOutput()
+        agent_trace = []
         
-        # Step 1: Intent Extraction
+        # Agent 1: PlannerAgent
+        agent_trace.append({"agent": "PlannerAgent", "thought": "Extracting entities from raw user query", "action": "Invoked GeminiIntentParser"})
         logger.info(f"[Unified Orchestrator] Starting intent extraction for query: '{request.query}'")
         try:
             intent_result = self.intent_parser.parse_raw_query(request.query)
@@ -92,12 +95,25 @@ class UnifiedOrchestratorService:
             
         output.parsed_intent = intent_data
         
-        # Step 2: Provider Matching
-        logger.info(f"[Unified Orchestrator] Starting provider matching for category: {intent_data.service_category}")
-        
+        # PlannerAgent multi-turn slot filling check
+        agent_trace.append({"agent": "PlannerAgent", "thought": "Validating mandatory slots: category, location, time", "action": "Performing Slot-Filling Check"})
         extracted_location = intent_data.location_context or request.user_location
+        
+        if not intent_data.service_category:
+            agent_trace.append({"agent": "PlannerAgent", "thought": "Service category slot is missing", "action": "Triggered Slot-Filling Error"})
+            raise SlotFillingError("Aapko kaunsi service chahye? Kindly specify karein (e.g., Plumber, AC Technician, etc.).", agent_trace=agent_trace)
+            
         if not extracted_location or not extracted_location.strip() or "unknown" in extracted_location.lower():
-            raise SlotFillingError("Aap ne service select ki hai, lekin location nahi batayi. Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein taake hum kareebi options dhoond sakein.")
+            agent_trace.append({"agent": "PlannerAgent", "thought": "Location slot is missing or invalid", "action": "Triggered Slot-Filling Error"})
+            raise SlotFillingError("Aap ne service select ki hai, lekin location nahi batayi. Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein taake hum kareebi options dhoond sakein.", agent_trace=agent_trace)
+            
+        if not intent_data.time_preference:
+             agent_trace.append({"agent": "PlannerAgent", "thought": "Time slot is missing", "action": "Triggered Slot-Filling Error"})
+             raise SlotFillingError("Aap ne service select ki hai, lekin time nahi bataya. Kindly bataein aapko technician kab chahiye?", agent_trace=agent_trace)
+        
+        # Agent 2: MatchingAgent
+        agent_trace.append({"agent": "MatchingAgent", "thought": f"Calculating Euclidean distances for {intent_data.service_category} candidates near {extracted_location}", "action": "Invoked Geospatial Matching"})
+        logger.info(f"[Unified Orchestrator] Starting provider matching for category: {intent_data.service_category}")
         
         urgency_bool = intent_data.urgency_level in ["urgent", "very urgent"]
         
@@ -106,19 +122,12 @@ class UnifiedOrchestratorService:
         if not matched_providers:
             raise OrchestrationError(f"No providers found for category '{intent_data.service_category}'.", stage="matching", partial_data=output.model_dump())
             
-        # top_provider = matched_providers[0]
-        # output.assigned_provider = top_provider
-        # provider_id = top_provider["id"]
-        # distance_km = top_provider["distance_km"]
-
-        # 1. Top ranked provider uthaein
         top_provider = matched_providers[0]
-
-        # 2. Key Mismatch safe check (id vs provider_id)
         provider_id = top_provider.get("id") or top_provider.get("provider_id")
         distance_km = top_provider["distance_km"]
+        
+        agent_trace.append({"agent": "MatchingAgent", "thought": f"Selected provider {provider_id} based on optimal geospatial mapping.", "action": "Matched Top Provider"})
 
-        # 3. Schema alignment dictionary taiyar karein taake validation fail na ho
         aligned_provider_data = {
             "id": provider_id,
             "name": top_provider["name"],
@@ -126,19 +135,10 @@ class UnifiedOrchestratorService:
             "distance_km": distance_km,
             "rating": top_provider["rating"],
             "tier": top_provider["tier"],
-            "match_score": top_provider.get("match_score", 1.0)
+            "match_score": top_provider.get("match_score", 1.0),
+            "selection_reasoning": top_provider.get("selection_reasoning", f"Selected '{top_provider['name']}' because they are the closest available {top_provider['tier'].capitalize()}-Tier provider within {distance_km}km with a {top_provider['rating']} rating.")
         }
-        aligned_provider_data = {
-        "id": provider_id,
-        "name": top_provider["name"],
-        "category": top_provider["category"],
-        "distance_km": distance_km,
-        "rating": top_provider["rating"],
-        "tier": top_provider["tier"],
-        "match_score": top_provider.get("match_score", 1.0)
-        }
-
-        # 4. Output state ko data assign karein
+        
         output.assigned_provider = aligned_provider_data
 
 
@@ -180,5 +180,16 @@ class UnifiedOrchestratorService:
         except Exception as e:
             raise OrchestrationError(f"Booking error: {str(e)}", stage="booking", partial_data=output.model_dump())
             
+        # Agent 3: LifecycleAgent
+        agent_trace.append({"agent": "LifecycleAgent", "thought": "Booking confirmed, scheduling FSM simulation states", "action": "Generated future lifecycle schedule"})
+        
+        now = datetime.datetime.now(datetime.timezone.utc)
+        output.follow_up_schedule = [
+            {"state": "1-Hour Reminder", "timestamp": (now + datetime.timedelta(hours=1)).isoformat(), "message": "Reminder: Your technician will arrive in 1 hour."},
+            {"state": "En-Route", "timestamp": (now + datetime.timedelta(hours=2)).isoformat(), "message": "Alert: The technician is en-route to your location."},
+            {"state": "Post-Service Completion", "timestamp": (now + datetime.timedelta(hours=4)).isoformat(), "message": "Confirmation: Service marked as completed. Please leave a review."}
+        ]
+        
+        output.agent_trace = agent_trace
         logger.info("[Unified Orchestrator] End-to-end pipeline completed successfully.")
         return output

@@ -66,11 +66,19 @@ async def match_providers(request: MatchingRequestSchema) -> Union[APIResponseSc
     logger.info(f"Received matching request for category: '{request.service_category}'")
     
     try:
-        # Fetch from Firestore (simulated with mock array for wiring phase)
-        candidates = [p for p in MOCK_PROVIDERS if p.get('category') == request.service_category]
-        schedules = [s for s in MOCK_SCHEDULES if s.get('providerId') in [c['id'] for c in candidates]]
+        raw_results = matching_engine.match_providers(request.service_category, request.location_context or "sadar")
         
-        ranked_results = matching_engine.match_and_rank(request, candidates, schedules)
+        ranked_results = []
+        for r in raw_results:
+            ranked_results.append(RankedProviderResponseSchema(
+                id=r["provider_id"],
+                name=r["name"],
+                category=r["category"],
+                composite_score=r["match_score"],
+                distance_km=r["distance_km"],
+                matched_skills=[r["category"]],
+                is_available=True
+            ))
         
         exec_time_ms = round((time.time() - start_time) * 1000, 2)
         

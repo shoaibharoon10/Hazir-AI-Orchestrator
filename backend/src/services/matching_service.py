@@ -87,7 +87,8 @@ class ProviderMatchingEngine:
                     "distance_km": max(1.2, distance_km), # Minimum floor boundary
                     "rating": p["rating"],
                     "tier": p["tier"],
-                    "match_score": match_score
+                    "match_score": match_score,
+                    "selection_reasoning": f"Selected '{p['name']}' because they are the closest available {p['tier'].capitalize()}-Tier provider within {distance_km}km with a {p['rating']} rating."
                 })
         
         # Sort dynamically by true Euclidean distance ascending (closest to farthest)
