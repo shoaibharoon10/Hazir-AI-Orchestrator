@@ -6,17 +6,17 @@ This checklist outlines the sequential implementation plan for the 002-provider-
 
 **Goal**: Prepare the foundational schemas and project scaffolding required to handle the 6-factor matching input/output logic securely.
 
-- [ ] T001 Define `MatchingRequestSchema` and `RankedProviderResponseSchema` in `backend/src/schemas/provider.py`
-- [ ] T002 Scaffold the `ProviderMatchingEngine` base class in `backend/src/lib/matching_engine.py`
+- [x] T001 Define `MatchingRequestSchema` and `RankedProviderResponseSchema` in `backend/src/schemas/provider.py`
+- [x] T002 Scaffold the `ProviderMatchingEngine` base class in `backend/src/lib/matching_engine.py`
 
 ## Phase 2: Core Algorithmic Engineering
 
 **Goal**: Implement the deterministic 6-factor scoring formulas completely decoupled from the LLM routing.
 
-- [ ] T003 [US1] Implement Haversine Formula geospatial distance calculation function in `backend/src/lib/matching_engine.py`
-- [ ] T004 [US1] Implement time-window intersection matching logic in `backend/src/lib/matching_engine.py`
-- [ ] T005 [US1] Implement composite scoring function integrating global ratings, review recency, and reliability metrics in `backend/src/lib/matching_engine.py`
-- [ ] T006 [US1] Implement specific technical skill mapping filter in `backend/src/lib/matching_engine.py`
+- [x] T003 [US1] Implement Haversine Formula geospatial distance calculation function in `backend/src/lib/matching_engine.py`
+- [x] T004 [US1] Implement time-window intersection matching logic in `backend/src/lib/matching_engine.py`
+- [x] T005 [US1] Implement composite scoring function integrating global ratings, review recency, and reliability metrics in `backend/src/lib/matching_engine.py`
+- [x] T006 [US1] Implement specific technical skill mapping filter in `backend/src/lib/matching_engine.py`
 
 ## Phase 3: Integration Tests Boilerplate
 
