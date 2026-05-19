@@ -1,46 +1,88 @@
 import logging
-
 import re
 from src.schemas.intent import APIResponseSchema, IntentExtractionSchema
 
 logger = logging.getLogger(__name__)
 
+# Karachi area tokens for location extraction
+KARACHI_LOCATIONS = [
+    "clifton", "dha", "gulshan", "johar", "nazimabad", "sadar",
+    "defence", "north nazimabad", "malir", "korangi", "landhi",
+    "gulistan", "liaquatabad", "fb area", "federal b", "shah faisal",
+    "bahria town", "scheme 33", "block", "phase"
+]
+
+# Time-related tokens (Roman Urdu + English)
+TIME_TOKENS = re.compile(
+    r'\b('
+    r'aaj|kal|parson|subah|dopahar|sham|raat|abhi|foran|'
+    r'today|tomorrow|morning|evening|afternoon|night|now|asap|'
+    r'\d{1,2}\s*(am|pm|baje|bajay)'
+    r')\b',
+    re.IGNORECASE
+)
+
+
 def execute_regex_fallback(query: str) -> APIResponseSchema:
     """
-    Fallback function that extracts basic service matches via simple 
-    string/regex token queries if the main AI API fails or times out.
-    
-    Args:
-        query (str): The raw user query.
-        
-    Returns:
-        APIResponseSchema: The unified API response containing fallback parsed data or an error.
+    Aggressive Roman Urdu + English regex fallback parser.
+    Returns None for any slot not explicitly found in the query string.
     """
-    logger.info(f"Executing regex fallback strategy for query: '{query}'")
-    
+    logger.info(f"Executing regex fallback for query: '{query}'")
+
     q_lower = query.lower()
-    category = "Unknown"
-    
-    if re.search(r'\b(ac|air condition|hvac|cooling|theek)\b', q_lower):
+    category = None
+
+    # Category extraction — Roman Urdu + English hybrid patterns
+    if re.search(r'\b(ac|air\s*condition|hvac|cool|thanda|thand)', q_lower):
         category = "AC Technician"
-    elif re.search(r'\b(light|electric|wiring|plug|switch)\b', q_lower):
-        category = "Electrician"
-    elif re.search(r'\b(plumb|water|leak|pipe|sink|drain)\b', q_lower):
+    elif re.search(r'\b(plumb|pani|paani|leak|pipe|tap|nal|nalkay|sink|drain|motor\b)', q_lower):
         category = "Plumber"
-        
-    if category == "Unknown":
+    elif re.search(r'\b(electric|bijli|wir|plug|switch|short\s*circuit|light|bulb)', q_lower):
+        category = "Electrician"
+    elif re.search(r'\b(beaut|salon|parlour|parlor|makeup|facial|mehndi|thread)', q_lower):
+        category = "Beautician"
+    elif re.search(r'\b(appliance|wash|fridge|freez|microwave|oven|geyser|geezar|machine\s*band)', q_lower):
+        category = "Appliance Repair"
+
+    if not category:
+        logger.warning("[Fallback] Could not determine service category from query tokens.")
         return APIResponseSchema(
             success=False,
             error="Regex fallback could not determine category from tokens."
         )
-        
+
+    # Location extraction — scan for any known Karachi area token
+    location = None
+    for loc in KARACHI_LOCATIONS:
+        if loc in q_lower:
+            # Capitalise the matched area for display
+            location = loc.title()
+            break
+
+    # Time extraction — scan for any time-like token
+    time_pref = None
+    time_match = TIME_TOKENS.search(query)
+    if time_match:
+        time_pref = time_match.group(0).strip()
+
+    # Urgency extraction
+    urgency = "normal"
+    if re.search(r'\b(urgent|foran|bohot\s*zaruri|emergency|abhi|jaldi)', q_lower):
+        urgency = "urgent"
+
+    logger.info(
+        f"[Fallback] Extracted: category={category}, location={location}, "
+        f"time={time_pref}, urgency={urgency}"
+    )
+
     return APIResponseSchema(
         success=True,
         data=IntentExtractionSchema(
             service_category=category,
-            location_context="Unknown fallback location",
-            time_preference="As soon as possible",
-            urgency_level="normal",
-            confidence_score=0.75 # High enough to pass the gate
+            location_context=location,
+            time_preference=time_pref,
+            urgency_level=urgency,
+            confidence_score=0.75
         )
     )

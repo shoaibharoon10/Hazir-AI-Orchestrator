@@ -88,11 +88,29 @@ class UnifiedOrchestratorService:
             intent_result = execute_regex_fallback(request.query)
 
         if not intent_result.success or not intent_result.data:
-            raise OrchestrationError("Could not extract intent from query.", stage="intent")
+            agent_trace.append({
+                "agent": "PlannerAgent",
+                "thought": "Both Gemini and regex fallback failed to extract any intent",
+                "action": "Triggered Slot-Filling Error (total failure)"
+            })
+            raise SlotFillingError(
+                "Maazrat, main aap ki baat samajh nahi paya. Kya aap bata sakte hain "
+                "aap ko konsi service (AC, Plumber, Electrician, Beautician) chahiye?",
+                agent_trace=agent_trace
+            )
 
         intent_data = intent_result.data
         if intent_data.confidence_score < 0.70:
-            raise OrchestrationError("Low confidence in intent parsing. Clarification required.", stage="intent")
+            agent_trace.append({
+                "agent": "PlannerAgent",
+                "thought": f"Confidence score {intent_data.confidence_score} is below 0.70 threshold",
+                "action": "Triggered Slot-Filling Error (low confidence)"
+            })
+            raise SlotFillingError(
+                "Maazrat, main aap ki baat samajh nahi paya. Kya aap bata sakte hain "
+                "aap ko konsi service (AC, Plumber, Electrician, Beautician) chahiye?",
+                agent_trace=agent_trace
+            )
 
         output.parsed_intent = intent_data
 
@@ -103,7 +121,17 @@ class UnifiedOrchestratorService:
             "action": "Performing Slot-Filling Check"
         })
 
-        extracted_location = intent_data.location_context or request.user_location
+        # Strict coercion: empty strings, whitespace, "unknown", "--" all become None
+        def _coerce_slot(val):
+            if not val or not val.strip():
+                return None
+            cleaned = val.strip().lower()
+            if cleaned in ("unknown", "--", "unknown fallback location", "n/a", "none"):
+                return None
+            return val.strip()
+
+        extracted_location = _coerce_slot(intent_data.location_context) or _coerce_slot(request.user_location)
+        extracted_time = _coerce_slot(intent_data.time_preference)
 
         # STEP A — Unsupported service guard (fires before location/time)
         if not intent_data.service_category or intent_data.service_category not in ALLOWED_CATEGORIES:
@@ -120,12 +148,8 @@ class UnifiedOrchestratorService:
             )
 
         # STEP B — Location is always checked before time
-        loc_missing = (
-            not extracted_location
-            or not extracted_location.strip()
-            or "unknown" in extracted_location.lower()
-        )
-        time_missing = not intent_data.time_preference
+        loc_missing = not extracted_location
+        time_missing = not extracted_time
 
         if loc_missing and time_missing:
             agent_trace.append({
@@ -265,7 +289,7 @@ class UnifiedOrchestratorService:
             "agent": "ExecutionAgent",
             "thought": (
                 f"Attempting slot lock for best_match '{best_match['name']}' "
-                f"at time '{intent_data.time_preference}'."
+                f"at time '{extracted_time}'."
             ),
             "action": "Initiating Booking FSM",
             "tool_used": "BookingService"
@@ -284,7 +308,7 @@ class UnifiedOrchestratorService:
                 booking_req = BookingRequestInput(
                     provider_id=candidate_id,
                     job_category=intent_data.service_category,
-                    scheduled_time=intent_data.time_preference,
+                    scheduled_time=extracted_time,
                     dynamic_price=price_breakdown.net_total,
                     customer_id=request.customer_id,
                     location_context=extracted_location
