@@ -105,14 +105,32 @@ class GeminiIntentParser:
             
             logger.info("Executing Google Gemini API live request...")
             
-            # Use generation_config to encourage JSON output
-            response = self.client.models.generate_content(
-                model=self.model_id,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                )
-            )
+            # Use generation_config to encourage JSON output with robust model routing fallbacks
+            response = None
+            last_err = None
+            models_to_try = [self.model_id, 'gemini-1.5-flash', 'gemini-1.5-pro']
+            for m in models_to_try:
+                if not m:
+                    continue
+                try:
+                    logger.info(f"Attempting Gemini generation with model: '{m}'")
+                    response = self.client.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                        )
+                    )
+                    # Dynamically cache successful model for future fast paths
+                    self.model_id = m
+                    logger.info(f"Successfully processed query using Gemini model: '{m}'")
+                    break
+                except Exception as exc:
+                    logger.warning(f"Gemini call failed with model '{m}': {str(exc)}")
+                    last_err = exc
+
+            if not response:
+                raise last_err or Exception("All Gemini model routing attempts failed.")
             
             response_text = response.text.strip()
             

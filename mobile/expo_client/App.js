@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   amberCardText: {
-    color: '#FDE68A',
+    color: '#F8FAFC',
     fontSize: 15,
     lineHeight: 22,
   },

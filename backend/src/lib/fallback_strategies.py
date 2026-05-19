@@ -52,19 +52,32 @@ def execute_regex_fallback(query: str) -> APIResponseSchema:
             error="Regex fallback could not determine category from tokens."
         )
 
-    # Location extraction — scan for any known Karachi area token
+    # Location extraction — scan for standard demo locations first, then fall back to others
     location = None
-    for loc in KARACHI_LOCATIONS:
+    demo_locations = ["clifton", "johar", "sadar", "dha", "nazimabad", "gulshan"]
+    for loc in demo_locations:
         if loc in q_lower:
-            # Capitalise the matched area for display
             location = loc.title()
             break
+            
+    if not location:
+        for loc in KARACHI_LOCATIONS:
+            if loc in q_lower:
+                location = loc.title()
+                break
 
-    # Time extraction — scan for any time-like token
+    # Time extraction — scan for demo times first, then fall back to the regex pattern
     time_pref = None
-    time_match = TIME_TOKENS.search(query)
-    if time_match:
-        time_pref = time_match.group(0).strip()
+    demo_times = ["10 am", "urgent", "aaj raat", "kal subha", "now"]
+    for dt in demo_times:
+        if dt in q_lower:
+            time_pref = dt.title()
+            break
+            
+    if not time_pref:
+        time_match = TIME_TOKENS.search(query)
+        if time_match:
+            time_pref = time_match.group(0).strip()
 
     # Urgency extraction
     urgency = "normal"
