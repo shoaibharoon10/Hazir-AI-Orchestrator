@@ -4,9 +4,10 @@ import {
   ActivityIndicator, SafeAreaView, Platform, StatusBar 
 } from 'react-native';
 
-const BACKEND_URL = 'http://192.168.10.7:8000/api/orchestrate/run-all';
+const DEFAULT_IP = '192.168.10.7';
 
 export default function App() {
+  const [ipAddress, setIpAddress] = useState(DEFAULT_IP);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
@@ -18,12 +19,16 @@ export default function App() {
     setResponse(null);
     setErrorMsg(null);
 
+    // Safeguard URL by trimming whitespace and filtering zero-width/invisible chars
+    const cleanIp = ipAddress.trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
+    const requestUrl = `http://${cleanIp}:8000/api/orchestrate/run-all`;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     try {
-      console.log('[Orchestrator] Sending query:', query);
-      const res = await fetch(BACKEND_URL, {
+      console.log('[Orchestrator] Sending query:', query, 'to URL:', requestUrl);
+      const res = await fetch(requestUrl, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -42,11 +47,18 @@ export default function App() {
       console.log('[Orchestrator] Parsed JSON keys:', Object.keys(data));
       setResponse(data);
     } catch (err) {
-      console.error('[Orchestrator] Fetch failed:', err.name, err.message);
+      console.error('[Orchestrator] Fetch failed:', err.name, err.message, err);
+      const errDetailStr = err.toString() || 'Unknown stack error';
       if (err.name === 'AbortError') {
-        setErrorMsg("Request timed out after 30 seconds. The AI backend may be processing a complex query — please try again.");
+        setErrorMsg(`Request timed out after 30 seconds. The AI backend may be processing a complex query. (URL: ${requestUrl})`);
       } else {
-        setErrorMsg(`Network Error: ${err.message}. Ensure the backend is running at ${BACKEND_URL}`);
+        setErrorMsg(
+          `TypeError / Network failed!\n` +
+          `Message: ${err.message || 'No message'}\n` +
+          `Detail: ${errDetailStr}\n` +
+          `Dest URL: ${requestUrl}\n` +
+          `Stack: ${err.stack || 'N/A'}`
+        );
       }
     } finally {
       clearTimeout(timeoutId);
@@ -200,6 +212,22 @@ export default function App() {
         <Text style={styles.headerTitle}>Neon Cyber-Orchestrator</Text>
       </View>
 
+      {/* Dynamic IP Configuration Panel */}
+      <View style={styles.ipPanel}>
+        <Text style={styles.ipLabel}>⚙️ BACKEND HOST IP:</Text>
+        <TextInput
+          style={styles.ipInput}
+          value={ipAddress}
+          onChangeText={setIpAddress}
+          placeholder="e.g. 192.168.10.7"
+          placeholderTextColor="#64748B"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="numeric"
+        />
+        <Text style={styles.ipPortLabel}>:8000</Text>
+      </View>
+
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -247,6 +275,40 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  ipPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+    gap: 8,
+  },
+  ipLabel: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  ipInput: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    color: '#06B6D4',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  ipPortLabel: {
+    color: '#06B6D4',
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   inputContainer: {
     flexDirection: 'row',
