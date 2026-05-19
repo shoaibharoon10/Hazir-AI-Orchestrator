@@ -62,44 +62,57 @@ class ProviderMatchingEngine:
             })
         return seeded
 
-    def match_providers(self, category: str, location_text: str) -> List[Dict[str, Any]]:
+    def match_providers(self, category: str, location_text: str) -> dict:
         normalized_loc = location_text.lower().strip()
-        
-        # Default user centroid if location text token is not matched directly
-        user_lat, user_lon = KARACHI_CENTROIDS.get("sadar") 
+
+        # Resolve user centroid — default to sadar if no known token found
+        user_lat, user_lon = KARACHI_CENTROIDS["sadar"]
         for loc_key, coords in KARACHI_CENTROIDS.items():
             if loc_key in normalized_loc:
                 user_lat, user_lon = coords
                 break
 
         matched_list = []
-        
-        # Filtering and calculating mathematical distance vector
+
         for p in self.providers:
-            if p["category"] == category:  # Strict exact string equality — no fuzzy matching
-                # Mathematical Straight-Line Vector Distance to Kilometer conversion (approx 111km per degree)
+            if p["category"] == category:  # Strict exact string equality
                 lat_diff = p["latitude"] - user_lat
                 lon_diff = p["longitude"] - user_lon
                 distance_km = round(math.sqrt(lat_diff**2 + lon_diff**2) * 111.0, 2)
-                
-                # Dynamic matching score based on distance and provider rating
-                # Less distance + higher rating = higher score
+
                 match_score = round((5.0 - (distance_km / 10.0)) * 0.6 + (p["rating"] * 0.4), 2)
-                match_score = max(0.1, min(1.0, match_score)) # Clamp between 0.1 and 1.0
-                
+                match_score = max(0.1, min(1.0, match_score))
+                floored_distance = max(1.2, distance_km)
+
                 matched_list.append({
                     "provider_id": p["provider_id"],
                     "name": p["name"],
                     "category": p["category"],
-                    "distance_km": max(1.2, distance_km), # Minimum floor boundary
+                    "distance_km": floored_distance,
                     "rating": p["rating"],
                     "tier": p["tier"],
                     "match_score": match_score,
-                    "selection_reasoning": f"Selected '{p['name']}' because they are the closest available {p['tier'].capitalize()}-Tier provider within {distance_km}km with a {p['rating']} rating."
                 })
-        
-        # Sort dynamically by true Euclidean distance ascending (closest to farthest)
+
+        # Sort ascending by distance (closest first)
         matched_list.sort(key=lambda x: x["distance_km"])
-        
-        logger.info(f"Geospatial Matching: Found {len(matched_list)} candidates for {category} near {location_text}")
-        return matched_list
+
+        if not matched_list:
+            logger.warning(f"No providers found for category '{category}' near '{location_text}'")
+            return {"best_match": None, "alternatives": []}
+
+        # Build selection_reasoning for the winner only
+        winner = matched_list[0]
+        winner["selection_reasoning"] = (
+            f"Selected '{winner['name']}' because they are the closest available "
+            f"{winner['tier'].capitalize()}-Tier provider within {winner['distance_km']}km "
+            f"of {location_text} with a {winner['rating']}/5.0 rating."
+        )
+
+        alternatives = matched_list[1:3]  # Top 2 alternatives
+
+        logger.info(
+            f"[MatchingAgent] {len(matched_list)} candidates for '{category}' near '{location_text}'. "
+            f"Best: {winner['name']} @ {winner['distance_km']}km. Alternatives: {len(alternatives)}."
+        )
+        return {"best_match": winner, "alternatives": alternatives}

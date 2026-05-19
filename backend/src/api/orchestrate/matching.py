@@ -66,10 +66,15 @@ async def match_providers(request: MatchingRequestSchema) -> Union[APIResponseSc
     logger.info(f"Received matching request for category: '{request.service_category}'")
     
     try:
-        raw_results = matching_engine.match_providers(request.service_category, request.location_context or "sadar")
+        result = matching_engine.match_providers(request.service_category, request.location_context or "sadar")
+        best_match = result["best_match"]
+        alternatives = result["alternatives"]
+        
+        # Combine into a flat ranked list for this endpoint's response contract
+        all_results = ([best_match] if best_match else []) + list(alternatives)
         
         ranked_results = []
-        for r in raw_results:
+        for r in all_results:
             ranked_results.append(RankedProviderResponseSchema(
                 id=r["provider_id"],
                 name=r["name"],

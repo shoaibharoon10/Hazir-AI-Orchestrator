@@ -18,14 +18,14 @@ from src.schemas.intent import APIResponseSchema, IntentExtractionSchema
 logger = logging.getLogger(__name__)
 
 # Highly optimized system prompt matrix for Roman Urdu parsing
-SYSTEM_PROMPT = """You are a highly specialized AI orchestration agent designed to parse mixed-language user requests (especially Roman Urdu, English, and local slang) and extract structured intent data.
+SYSTEM_PROMPT = """You are an expert multilingual AI orchestration agent fluent in pure Urdu script (اردو), Roman Urdu vernacular, and English. You specialise in parsing mixed-language Pakistani household service requests and extracting structured intent.
 
-Your ONLY job is to output a raw JSON object matching the exact schema provided below. 
-Do NOT output markdown code blocks (e.g., ```json ... ```), do not add conversational text, and do not explain your reasoning. Just raw JSON.
+Your ONLY job is to output a raw JSON object matching the exact schema provided below.
+Do NOT output markdown code blocks, do not add conversational text, and do not explain your reasoning. Just raw JSON.
 
 Schema:
 {
-  "service_category": "AC Technician" | "Electrician" | "Plumber" | null,
+  "service_category": "AC Technician" | "Electrician" | "Plumber" | "Beautician" | "Appliance Repair" | null,
   "location_context": "string or null",
   "time_preference": "string or null",
   "urgency_level": "normal" | "urgent" | "very urgent",
@@ -33,15 +33,17 @@ Schema:
 }
 
 Extraction Rules:
-1. 'service_category': Must strictly map to "AC Technician", "Electrician", or "Plumber". 
-   - If the user mentions cooling, AC, air conditioner, map to "AC Technician". 
-   - If lights, wiring, power, switchboard, map to "Electrician". 
-   - If water, leak, pipe, tap, motor, sink, map to "Plumber". 
-   - If ambiguous or unsupported, set to null.
-2. 'location_context': Extract any mentioned areas (e.g., "Clifton block 9", "DHA phase 6", "Gulshan", "Johar"). Null if not provided.
-3. 'time_preference': Extract timeframe exactly as implied (e.g., "aj sham 5 baje tak" -> "today 5 PM", "kal morning" -> "tomorrow morning"). Null if not provided.
-4. 'urgency_level': Classify as "normal", "urgent", or "very urgent" based on keywords like "bohot zaruri", "emergency", "foran". Default is "normal".
-5. 'confidence_score': Provide a dynamic confidence score. >0.85 if clear. <0.70 if the service category is vague, missing, unsupported, or if you are guessing (e.g., "I need help with my lights" -> ~0.60 since it could be minor or require an electrician).
+1. 'service_category': Strictly map to exactly one of the five allowed values:
+   - "AC Technician": user mentions AC, air conditioner, cooling, hvac, ٹھنڈک, اے سی ٹھیک
+   - "Electrician": lights, wiring, power, switch, plug, bijli, بجلی, short circuit
+   - "Plumber": water, leak, pipe, tap, motor, drain, پانی, ٹونٹی, nal band
+   - "Beautician": salon, makeup, beauty, parlour, facial, mehndi, threading, بیوٹی پارلر, ميک اپ
+   - "Appliance Repair": washing machine, fridge, microwave, dishwasher, گیزر, oven, machine band hai
+   - If ambiguous or completely unsupported, set to null.
+2. 'location_context': Extract any Karachi area (Clifton, DHA, Gulshan, Johar, Nazimabad, Sadar, etc.). Null if not provided.
+3. 'time_preference': Extract timeframe as implied ("aaj sham 5 baje" -> "today 5 PM", "kal subah" -> "tomorrow morning"). Null if not mentioned.
+4. 'urgency_level': "normal", "urgent", or "very urgent" based on keywords like "bohot zaruri", "فوری", "emergency", "abhi", "foran". Default "normal".
+5. 'confidence_score': >0.85 if clear service and location. <0.70 if service category is vague or guessed.
 """
 
 class GeminiIntentParser:

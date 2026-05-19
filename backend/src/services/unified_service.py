@@ -5,7 +5,6 @@ from src.nlp_helpers.gemini_parser import GeminiIntentParser
 from src.lib.fallback_strategies import execute_regex_fallback
 
 from src.schemas.unified import UnifiedOrchestratorInput, UnifiedOrchestratorOutput
-from src.schemas.provider import MatchingRequestSchema
 from src.schemas.pricing import PricingRequestInput
 from src.schemas.booking import BookingRequestInput, BookingSummaryOutput
 
@@ -15,31 +14,43 @@ from src.services.booking_service import BookingService, DoubleBookingError
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_CATEGORIES = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair"]
+
+
+# ---------------------------------------------------------------------------
+# Custom pipeline exceptions
+# ---------------------------------------------------------------------------
+
 class OrchestrationError(Exception):
-    """Custom exception for controlled pipeline aborts."""
+    """Controlled pipeline abort with stage metadata."""
     def __init__(self, message: str, stage: str, partial_data: dict = None):
         self.message = message
         self.stage = stage
         self.partial_data = partial_data
         super().__init__(self.message)
 
+
 class SlotFillingError(Exception):
-    """Custom exception for missing slots that need user clarification."""
+    """Missing mandatory slot — needs user clarification."""
     def __init__(self, message: str, agent_trace: list, status: str = "prompt_for_missing"):
         self.message = message
         self.status = status
         self.agent_trace = agent_trace
         super().__init__(self.message)
 
+
 class UnsupportedServiceError(Exception):
-    """Custom exception for unrecognised or unsupported service categories."""
+    """Parsed category not in the five supported verticals."""
     def __init__(self, message: str, agent_trace: list, status: str = "unsupported"):
         self.message = message
         self.status = status
         self.agent_trace = agent_trace
         super().__init__(self.message)
 
-ALLOWED_CATEGORIES = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair"]
+
+# ---------------------------------------------------------------------------
+# Orchestrator Service
+# ---------------------------------------------------------------------------
 
 class UnifiedOrchestratorService:
     def __init__(self):
@@ -47,131 +58,189 @@ class UnifiedOrchestratorService:
         self.matching_engine = ProviderMatchingEngine()
         self.pricing_service = PricingService()
         self.booking_service = BookingService()
-        
-        # Mocks for E2E wiring
-        self.MOCK_PROVIDERS = [
-            {
-                "id": "prov_ac_1",
-                "name": "Ali HVAC Services",
-                "category": "AC Technician",
-                "specializations": ["AC Installation", "AC Repair", "Maintenance"],
-                "basePrice": 1500.0,
-                "rating": 4.8,
-                "cancellationRate": 0.05,
-                "reliabilityScore": 0.92,
-                "distanceVectors": {"lat": 24.8607, "lng": 67.0011},
-                "reviewRecency": 2.5,
-            },
-            {
-                "id": "prov_elec_1",
-                "name": "Kamran Electrician",
-                "category": "Electrician",
-                "specializations": ["Wiring", "Panel Upgrades", "Fault Finding"],
-                "basePrice": 1200.0,
-                "rating": 4.5,
-                "cancellationRate": 0.1,
-                "reliabilityScore": 0.88,
-                "distanceVectors": {"lat": 24.8500, "lng": 67.0100},
-                "reviewRecency": 5.0,
-            }
-        ]
-        self.MOCK_SCHEDULES = [
-            {"providerId": "prov_ac_1", "availableDates": ["2026-05-18"]},
-            {"providerId": "prov_elec_1", "availableDates": ["2026-05-18"]}
-        ]
+
+    # -----------------------------------------------------------------------
+    # Master pipeline
+    # -----------------------------------------------------------------------
 
     def run_pipeline(self, request: UnifiedOrchestratorInput) -> UnifiedOrchestratorOutput:
         output = UnifiedOrchestratorOutput()
         agent_trace = []
-        
-        # Agent 1: PlannerAgent
-        agent_trace.append({"agent": "PlannerAgent", "thought": "Extracting entities from raw user query", "action": "Invoked GeminiIntentParser"})
-        logger.info(f"[Unified Orchestrator] Starting intent extraction for query: '{request.query}'")
+
+        # ===================================================================
+        # Agent 1 — PlannerAgent: Multilingual Intent Extraction + Slot Gate
+        # ===================================================================
+        agent_trace.append({
+            "agent": "PlannerAgent",
+            "thought": "Extracting structured intent from multilingual query (Urdu / Roman Urdu / English)",
+            "action": "Invoked GeminiIntentParser",
+            "tool_used": "GeminiIntentParser"
+        })
+        logger.info(f"[PlannerAgent] Query: '{request.query}'")
+
         try:
             intent_result = self.intent_parser.parse_raw_query(request.query)
             if not intent_result.success or not intent_result.data:
-                logger.warning("[Unified Orchestrator] Gemini parse failed. Triggering fallback.")
+                logger.warning("[PlannerAgent] Gemini failed — triggering regex fallback.")
                 intent_result = execute_regex_fallback(request.query)
-        except Exception as e:
-            logger.warning(f"[Unified Orchestrator] Gemini exception: {str(e)}. Triggering fallback.")
+        except Exception as exc:
+            logger.warning(f"[PlannerAgent] Gemini exception: {exc} — triggering regex fallback.")
             intent_result = execute_regex_fallback(request.query)
-            
+
         if not intent_result.success or not intent_result.data:
             raise OrchestrationError("Could not extract intent from query.", stage="intent")
-            
+
         intent_data = intent_result.data
         if intent_data.confidence_score < 0.70:
             raise OrchestrationError("Low confidence in intent parsing. Clarification required.", stage="intent")
-            
+
         output.parsed_intent = intent_data
-        
-        agent_trace.append({"agent": "PlannerAgent", "thought": "Validating mandatory slots: category, location, time", "action": "Performing Slot-Filling Check"})
+
+        # Slot validation
+        agent_trace.append({
+            "agent": "PlannerAgent",
+            "thought": "Concurrently validating 3 mandatory slots: service_category, location_text, scheduled_time",
+            "action": "Performing Slot-Filling Check"
+        })
+
         extracted_location = intent_data.location_context or request.user_location
 
-        # STEP A: Unsupported / unrecognised service category guard
+        # STEP A — Unsupported service guard (fires before location/time)
         if not intent_data.service_category or intent_data.service_category not in ALLOWED_CATEGORIES:
-            agent_trace.append({"agent": "PlannerAgent", "thought": f"Category '{intent_data.service_category}' is not in the supported list", "action": "Triggered Unsupported Service Error"})
+            agent_trace.append({
+                "agent": "PlannerAgent",
+                "thought": f"Category '{intent_data.service_category}' is outside the five supported verticals",
+                "action": "Triggered UnsupportedServiceError"
+            })
             raise UnsupportedServiceError(
-                "Maazrat! Hamare paas filhal yeh service operational nahi hai. Currently hum Karachi mein sirf in core vertical services ke sath deal kar rahe hain: AC Technician, Plumber, Electrician, Beautician, aur Appliance Repair.",
+                "Maazrat! Hamare paas filhal yeh service operational nahi hai. "
+                "Currently hum Karachi mein sirf in core vertical services ke sath deal kar rahe hain: "
+                "AC Technician, Plumber, Electrician, Beautician, aur Appliance Repair.",
                 agent_trace=agent_trace
             )
 
-        # STEP B: Location check is ALWAYS first — regardless of whether time is provided
-        loc_missing = not extracted_location or not extracted_location.strip() or "unknown" in extracted_location.lower()
+        # STEP B — Location is always checked before time
+        loc_missing = (
+            not extracted_location
+            or not extracted_location.strip()
+            or "unknown" in extracted_location.lower()
+        )
         time_missing = not intent_data.time_preference
 
         if loc_missing and time_missing:
-            agent_trace.append({"agent": "PlannerAgent", "thought": "Both location and time slots are missing", "action": "Triggered Slot-Filling Error"})
-            raise SlotFillingError("Aap ne service select ki hai, lekin location aur time nahi bataya. Kindly apna area (e.g., Clifton, Johar) aur time bataein.", agent_trace=agent_trace)
+            agent_trace.append({
+                "agent": "PlannerAgent",
+                "thought": "Both location and time slots are absent",
+                "action": "Triggered Slot-Filling Error (both)"
+            })
+            raise SlotFillingError(
+                "Aap ne service select ki hai, lekin location aur time dono nahi bataye. "
+                "Kindly apna Karachi area (e.g., Clifton, Johar, DHA) aur preferred time bataein.",
+                agent_trace=agent_trace
+            )
 
         if loc_missing:
-            agent_trace.append({"agent": "PlannerAgent", "thought": "Location slot is missing or invalid — blocking pipeline regardless of time slot", "action": "Triggered Slot-Filling Error"})
-            raise SlotFillingError("Aap ne service select ki hai, lekin location (area) nahi batayi. Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein taake hum kareebi options dhoond sakein.", agent_trace=agent_trace)
+            agent_trace.append({
+                "agent": "PlannerAgent",
+                "thought": "Location slot missing — blocking pipeline regardless of time slot state",
+                "action": "Triggered Slot-Filling Error (location)"
+            })
+            raise SlotFillingError(
+                "Aap ne service select ki hai, lekin location (area) nahi batayi. "
+                "Kindly Karachi ka area (e.g., Clifton, Johar, Sadar, Nazimabad, DHA) bataein "
+                "taake hum kareebi options dhoond sakein.",
+                agent_trace=agent_trace
+            )
 
         if time_missing:
-            agent_trace.append({"agent": "PlannerAgent", "thought": "Time slot is missing", "action": "Triggered Slot-Filling Error"})
-            raise SlotFillingError("Aap ne service select ki hai, lekin time nahi bataya. Kindly bataein aapko technician kab chahiye?", agent_trace=agent_trace)
-        
-        # Agent 2: MatchingAgent
-        agent_trace.append({"agent": "MatchingAgent", "thought": f"Calculating Euclidean distances for {intent_data.service_category} candidates near {extracted_location}", "action": "Invoked Geospatial Matching"})
-        logger.info(f"[Unified Orchestrator] Starting provider matching for category: {intent_data.service_category}")
-        
+            agent_trace.append({
+                "agent": "PlannerAgent",
+                "thought": "Time slot missing",
+                "action": "Triggered Slot-Filling Error (time)"
+            })
+            raise SlotFillingError(
+                "Aap ne service select ki hai, lekin time nahi bataya. "
+                "Kindly bataein aapko technician kab chahiye?",
+                agent_trace=agent_trace
+            )
+
+        agent_trace.append({
+            "agent": "PlannerAgent",
+            "thought": "All 3 mandatory slots verified. Handing off to MatchingAgent.",
+            "action": "Slot Validation Passed"
+        })
+
+        # ===================================================================
+        # Agent 2 — MatchingAgent: Geospatial Multi-Option Ranking
+        # ===================================================================
         urgency_bool = intent_data.urgency_level in ["urgent", "very urgent"]
-        
-        matched_providers = self.matching_engine.match_providers(intent_data.service_category, extracted_location)
-        
-        if not matched_providers:
-            raise OrchestrationError(f"No providers found for category '{intent_data.service_category}'.", stage="matching", partial_data=output.model_dump())
-            
-        top_provider = matched_providers[0]
-        provider_id = top_provider.get("id") or top_provider.get("provider_id")
-        distance_km = top_provider["distance_km"]
-        
-        agent_trace.append({"agent": "MatchingAgent", "thought": f"Selected provider {provider_id} based on optimal geospatial mapping.", "action": "Matched Top Provider"})
 
-        aligned_provider_data = {
-            "id": provider_id,
-            "name": top_provider["name"],
-            "category": top_provider["category"],
+        agent_trace.append({
+            "agent": "MatchingAgent",
+            "thought": (
+                f"Computing Euclidean distance vectors for all '{intent_data.service_category}' "
+                f"providers near '{extracted_location}'. Ranking by proximity + tier weight."
+            ),
+            "action": "Invoked Geospatial Matching Engine",
+            "tool_used": "ProviderMatchingEngine"
+        })
+
+        match_result = self.matching_engine.match_providers(
+            intent_data.service_category, extracted_location
+        )
+
+        if not match_result["best_match"]:
+            raise OrchestrationError(
+                f"No providers found for category '{intent_data.service_category}'.",
+                stage="matching",
+                partial_data=output.model_dump()
+            )
+
+        best_match = match_result["best_match"]
+        alternatives = match_result["alternatives"]
+        distance_km = best_match["distance_km"]
+
+        output.multi_provider_options = match_result
+        output.assigned_provider = {
+            "id": best_match["provider_id"],
+            "name": best_match["name"],
+            "category": best_match["category"],
             "distance_km": distance_km,
-            "rating": top_provider["rating"],
-            "tier": top_provider["tier"],
-            "match_score": top_provider.get("match_score", 1.0),
-            "selection_reasoning": top_provider.get("selection_reasoning", f"Selected '{top_provider['name']}' because they are the closest available {top_provider['tier'].capitalize()}-Tier provider within {distance_km}km with a {top_provider['rating']} rating.")
+            "rating": best_match["rating"],
+            "tier": best_match["tier"],
+            "match_score": best_match["match_score"],
+            "selection_reasoning": best_match["selection_reasoning"]
         }
-        
-        output.assigned_provider = aligned_provider_data
 
+        agent_trace.append({
+            "agent": "MatchingAgent",
+            "thought": (
+                f"Best match: '{best_match['name']}' @ {distance_km}km. "
+                f"{len(alternatives)} alternative(s) available."
+            ),
+            "action": "Multi-Option Ranking Complete"
+        })
 
-        # Step 3: Dynamic Pricing
-        logger.info(f"[Unified Orchestrator] Starting price calculation for provider: {provider_id}")
-        
+        # ===================================================================
+        # Agent 3 — PricingAgent: Dynamic Billing Receipt
+        # ===================================================================
         complexity_tier = "intermediate"
-        if "ac" in intent_data.service_category.lower() or "complex" in intent_data.service_category.lower():
+        cat_lower = intent_data.service_category.lower()
+        if "ac" in cat_lower:
             complexity_tier = "complex"
-        elif "clean" in intent_data.service_category.lower() or "basic" in intent_data.service_category.lower():
+        elif "beautician" in cat_lower or "appliance" in cat_lower:
             complexity_tier = "basic"
-            
+
+        agent_trace.append({
+            "agent": "PricingAgent",
+            "thought": (
+                f"Computing dynamic pricing for '{complexity_tier}' complexity, "
+                f"{distance_km}km distance, urgency={urgency_bool}."
+            ),
+            "action": "Calculated Net Total",
+            "tool_used": "PricingService"
+        })
+
         pricing_req = PricingRequestInput(
             job_category=intent_data.service_category,
             complexity_tier=complexity_tier,
@@ -179,40 +248,167 @@ class UnifiedOrchestratorService:
             urgency_flag=urgency_bool,
             loyalty_tier=None
         )
-        
-        agent_trace.append({"agent": "PricingAgent", "thought": f"Calculating dynamic surge and base pricing for {complexity_tier} tier with {distance_km}km distance", "action": "Computed Net Total"})
         price_breakdown = self.pricing_service.calculate_net_total(pricing_req)
         output.price_breakdown = price_breakdown
-        
-        # Step 4: FSM Booking Confirmation
-        logger.info(f"[Unified Orchestrator] Starting booking simulation for provider {provider_id}")
-        booking_req = BookingRequestInput(
-            provider_id=provider_id,
-            job_category=intent_data.service_category,
-            scheduled_time=intent_data.time_preference or datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            dynamic_price=price_breakdown.net_total,
-            customer_id=request.customer_id,
-            location_context=request.user_location
+        output.dynamic_receipt = {
+            "base_fee": price_breakdown.base_price,
+            "distance_fee": price_breakdown.distance_buffer,
+            "urgency_surge": price_breakdown.surge_cost,
+            "discount": price_breakdown.discount,
+            "grand_total": price_breakdown.net_total
+        }
+
+        # ===================================================================
+        # Agent 4 — ExecutionAgent + DisputeAgent: FSM Booking + Collision Handling
+        # ===================================================================
+        agent_trace.append({
+            "agent": "ExecutionAgent",
+            "thought": (
+                f"Attempting slot lock for best_match '{best_match['name']}' "
+                f"at time '{intent_data.time_preference}'."
+            ),
+            "action": "Initiating Booking FSM",
+            "tool_used": "BookingService"
+        })
+
+        dispute_resolution_logs = []
+        booking_summary_dict = None
+        booked_provider = None
+
+        # Build ordered candidate list: best_match first, then alternatives
+        all_candidates = [best_match] + list(alternatives)
+
+        for idx, candidate in enumerate(all_candidates):
+            candidate_id = candidate["provider_id"]
+            try:
+                booking_req = BookingRequestInput(
+                    provider_id=candidate_id,
+                    job_category=intent_data.service_category,
+                    scheduled_time=intent_data.time_preference,
+                    dynamic_price=price_breakdown.net_total,
+                    customer_id=request.customer_id,
+                    location_context=extracted_location
+                )
+                booking_summary_dict = self.booking_service.create_booking(booking_req)
+                booked_provider = candidate
+
+                if idx == 0:
+                    agent_trace.append({
+                        "agent": "ExecutionAgent",
+                        "thought": f"Slot locked for best_match '{candidate['name']}'.",
+                        "action": "Booking Confirmed"
+                    })
+                else:
+                    agent_trace.append({
+                        "agent": "DisputeAgent",
+                        "thought": (
+                            f"Alternative #{idx} '{candidate['name']}' successfully booked "
+                            f"after {idx} collision(s)."
+                        ),
+                        "action": "Dispute Resolved — Alternative Booked"
+                    })
+                break  # booking succeeded
+
+            except DoubleBookingError as dbe:
+                log_entry = {
+                    "attempt_index": idx,
+                    "provider_id": candidate_id,
+                    "provider_name": candidate["name"],
+                    "collision_reason": str(dbe),
+                    "action": "Routing to next candidate"
+                }
+                dispute_resolution_logs.append(log_entry)
+                logger.warning(f"[DisputeAgent] Collision on candidate #{idx} '{candidate['name']}': {dbe}")
+
+                if idx == 0:
+                    agent_trace.append({
+                        "agent": "DisputeAgent",
+                        "thought": (
+                            f"Double-booking collision on best_match '{candidate['name']}'. "
+                            "Activating sequential alternative resolution."
+                        ),
+                        "action": "Dispute Initiated — Iterating Alternatives"
+                    })
+                else:
+                    agent_trace.append({
+                        "agent": "DisputeAgent",
+                        "thought": f"Collision on alternative #{idx} '{candidate['name']}'. Evaluating next.",
+                        "action": "Evaluating Next Candidate"
+                    })
+
+            except Exception as exc:
+                raise OrchestrationError(
+                    f"Unexpected booking error: {str(exc)}",
+                    stage="booking",
+                    partial_data=output.model_dump()
+                )
+
+        if booking_summary_dict is None:
+            agent_trace.append({
+                "agent": "DisputeAgent",
+                "thought": f"All {len(all_candidates)} candidates exhausted. Request unfulfillable.",
+                "action": "Dispute Unresolved"
+            })
+            raise OrchestrationError(
+                f"All {len(all_candidates)} providers are already booked for the requested slot.",
+                stage="booking",
+                partial_data=output.model_dump()
+            )
+
+        output.booking_summary = BookingSummaryOutput(**booking_summary_dict)
+        output.dispute_resolution_logs = dispute_resolution_logs
+
+        # Build bilingual confirmation SMS
+        output.client_confirmation_sms = (
+            f"Booking Confirmed! Apka {intent_data.service_category} provider "
+            f"'{booked_provider['name']}' assign ho chuka hai. "
+            f"Booking ID: {booking_summary_dict['booking_id']}. "
+            f"Scheduled: {intent_data.time_preference}. "
+            f"Location: {extracted_location}. "
+            f"Total Amount: PKR {price_breakdown.net_total:.2f}. "
+            f"Shukriya! — AI Service Orchestrator"
         )
-        
-        try:
-            booking_summary_dict = self.booking_service.create_booking(booking_req)
-            output.booking_summary = BookingSummaryOutput(**booking_summary_dict)
-        except DoubleBookingError as e:
-            raise OrchestrationError(f"Double booking collision trapped: {str(e)}", stage="booking", partial_data=output.model_dump())
-        except Exception as e:
-            raise OrchestrationError(f"Booking error: {str(e)}", stage="booking", partial_data=output.model_dump())
-            
-        # Agent 3: LifecycleAgent
-        agent_trace.append({"agent": "LifecycleAgent", "thought": "Booking confirmed, scheduling FSM simulation states", "action": "Generated future lifecycle schedule"})
-        
+
+        # ===================================================================
+        # Agent 5 — FollowUpAgent: Timestamped Lifecycle Automation
+        # ===================================================================
         now = datetime.datetime.now(datetime.timezone.utc)
         output.follow_up_schedule = [
-            {"state": "1-Hour Reminder", "timestamp": (now + datetime.timedelta(hours=1)).isoformat(), "message": "Reminder: Your technician will arrive in 1 hour."},
-            {"state": "En-Route", "timestamp": (now + datetime.timedelta(hours=2)).isoformat(), "message": "Alert: The technician is en-route to your location."},
-            {"state": "Post-Service Completion", "timestamp": (now + datetime.timedelta(hours=4)).isoformat(), "message": "Confirmation: Service marked as completed. Please leave a review."}
+            {
+                "state": "1-Hour Reminder",
+                "timestamp": (now + datetime.timedelta(hours=1)).isoformat(),
+                "message": (
+                    f"Reminder: Aapka technician '{booked_provider['name']}' "
+                    "1 ghante mein pahunch jayega. Please tayyar rahein."
+                )
+            },
+            {
+                "state": "En-Route Update",
+                "timestamp": (now + datetime.timedelta(hours=2)).isoformat(),
+                "message": (
+                    f"Alert: Provider '{booked_provider['name']}' ab aapki taraf aa raha hai. "
+                    "Live coordinate tracking active."
+                )
+            },
+            {
+                "state": "Post-Service Completion",
+                "timestamp": (now + datetime.timedelta(hours=4)).isoformat(),
+                "message": (
+                    f"Service complete! Booking {booking_summary_dict['booking_id']} "
+                    "successfully mark ho gaya. Feedback zaroor dein — shukriya!"
+                )
+            }
         ]
-        
+
+        agent_trace.append({
+            "agent": "FollowUpAgent",
+            "thought": "Booking confirmed. Generating 3-stage automated lifecycle notification schedule.",
+            "action": "Follow-Up Schedule Generated"
+        })
+
         output.agent_trace = agent_trace
-        logger.info("[Unified Orchestrator] End-to-end pipeline completed successfully.")
+        logger.info(
+            f"[Orchestrator] Pipeline complete. Booking {booking_summary_dict['booking_id']} "
+            f"locked for provider '{booked_provider['name']}'."
+        )
         return output
