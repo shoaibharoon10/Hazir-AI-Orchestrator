@@ -4,7 +4,7 @@ import {
   ActivityIndicator, SafeAreaView, Platform, StatusBar 
 } from 'react-native';
 
-const BACKEND_URL = 'http://10.0.2.2:8000/api/orchestrate/run-all';
+const BACKEND_URL = 'http://192.168.10.7:8000/api/orchestrate/run-all';
 
 export default function App() {
   const [query, setQuery] = useState('');
@@ -17,24 +17,39 @@ export default function App() {
     setLoading(true);
     setResponse(null);
     setErrorMsg(null);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     try {
+      console.log('[Orchestrator] Sending query:', query);
       const res = await fetch(BACKEND_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: JSON.stringify({ 
-          query, 
-          customer_id: "MOBILE_USR_01", 
-          user_location: "unknown" 
+          query: query, 
+          customer_id: "HACKATHON_USER", 
+          user_location: null 
         }),
+        signal: controller.signal,
       });
 
+      console.log('[Orchestrator] Response status:', res.status);
       const data = await res.json();
+      console.log('[Orchestrator] Parsed JSON keys:', Object.keys(data));
       setResponse(data);
     } catch (err) {
-      console.error(err);
-      setErrorMsg("Network Error: Could not connect to the orchestrator. Is the backend running?");
+      console.error('[Orchestrator] Fetch failed:', err.name, err.message);
+      if (err.name === 'AbortError') {
+        setErrorMsg("Request timed out after 30 seconds. The AI backend may be processing a complex query — please try again.");
+      } else {
+        setErrorMsg(`Network Error: ${err.message}. Ensure the backend is running at ${BACKEND_URL}`);
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
