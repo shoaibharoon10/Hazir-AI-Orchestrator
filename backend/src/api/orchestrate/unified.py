@@ -28,10 +28,12 @@ unified_service = UnifiedOrchestratorService()
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": APIResponseSchema}
     }
 )
-async def execute_master_workflow(request: UnifiedOrchestratorInput) -> JSONResponse:
+def execute_master_workflow(request: UnifiedOrchestratorInput) -> JSONResponse:
     """
     POST endpoint to orchestrate the entire pipeline natively.
     Always returns HTTP 200 — status is communicated via the `status` field in the JSON body.
+    Uses sync def so FastAPI runs the blocking Gemini API call in a thread pool
+    instead of freezing the asyncio event loop.
     """
     start_time = time.time()
     logger.info(f"Received master orchestration request. Query: '{request.query}'")
