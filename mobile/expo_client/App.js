@@ -1,0 +1,468 @@
+import React, { useState } from 'react';
+import { 
+  StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, 
+  ActivityIndicator, SafeAreaView, Platform, StatusBar 
+} from 'react-native';
+
+const BACKEND_URL = 'http://10.0.2.2:8000/api/orchestrate/run-all';
+
+export default function App() {
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  const handleExecute = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setResponse(null);
+    setErrorMsg(null);
+    
+    try {
+      const res = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query, 
+          customer_id: "MOBILE_USR_01", 
+          user_location: "unknown" 
+        }),
+      });
+
+      const data = await res.json();
+      setResponse(data);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Network Error: Could not connect to the orchestrator. Is the backend running?");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderGatekeeper = () => {
+    if (!response || response.status === 'success' || response.status === 'error') return null;
+    return (
+      <View style={styles.amberCard}>
+        <Text style={styles.amberCardTitle}>⚠️ AI Gatekeeper</Text>
+        <Text style={styles.amberCardText}>{response.message}</Text>
+      </View>
+    );
+  };
+
+  const renderAgentTrace = () => {
+    if (!response || !response.agent_trace || response.agent_trace.length === 0) return null;
+    return (
+      <View style={styles.consoleContainer}>
+        <Text style={styles.consoleHeader}>--- AI Agent Trace ---</Text>
+        <ScrollView style={styles.consoleScroll} nestedScrollEnabled={true}>
+          {response.agent_trace.map((trace, index) => (
+            <View key={index} style={styles.traceBlock}>
+              <Text style={styles.traceAgent}>[{trace.agent}]</Text>
+              <Text style={styles.traceThought}>THOUGHT: {trace.thought}</Text>
+              <Text style={styles.traceAction}>ACTION: {trace.action}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderProviderOptions = () => {
+    if (!response || response.status !== 'success' || !response.data?.multi_provider_options) return null;
+    
+    const bestMatch = response.data.multi_provider_options.best_match;
+    const alternatives = response.data.multi_provider_options.alternatives || [];
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Provider Matching</Text>
+        
+        {bestMatch && (
+          <View style={[styles.card, styles.bestMatchCard]}>
+            <Text style={styles.bestMatchTitle}>⭐ Best Match: {bestMatch.name}</Text>
+            <Text style={styles.cardText}>Category: {bestMatch.category} ({bestMatch.tier} tier)</Text>
+            <Text style={styles.cardText}>Distance: {bestMatch.distance_km} km | Rating: {bestMatch.rating}/5.0</Text>
+            <View style={styles.reasoningBox}>
+              <Text style={styles.reasoningText}>{bestMatch.selection_reasoning}</Text>
+            </View>
+          </View>
+        )}
+
+        {alternatives.length > 0 && (
+          <View style={styles.alternativesContainer}>
+            <Text style={styles.alternativesHeader}>Alternatives</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {alternatives.map((alt, index) => (
+                <View key={index} style={[styles.card, styles.altCard]}>
+                  <Text style={styles.altTitle}>{alt.name}</Text>
+                  <Text style={styles.cardText}>Dist: {alt.distance_km} km</Text>
+                  <Text style={styles.cardText}>Rate: {alt.rating}/5.0</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderActionSimulation = () => {
+    if (!response || response.status !== 'success' || !response.data) return null;
+    const data = response.data;
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Action Simulation</Text>
+        
+        {data.dynamic_receipt && (
+          <View style={styles.card}>
+            <Text style={styles.cardHeader}>🧾 Dynamic Receipt</Text>
+            <View style={styles.receiptRow}><Text style={styles.cardText}>Base Fee</Text><Text style={styles.cardText}>PKR {data.dynamic_receipt.base_fee}</Text></View>
+            <View style={styles.receiptRow}><Text style={styles.cardText}>Distance Fee</Text><Text style={styles.cardText}>PKR {data.dynamic_receipt.distance_fee}</Text></View>
+            <View style={styles.receiptRow}><Text style={styles.cardText}>Urgency Surge</Text><Text style={styles.cardText}>PKR {data.dynamic_receipt.urgency_surge}</Text></View>
+            <View style={styles.receiptRow}><Text style={styles.cardText}>Discount</Text><Text style={styles.cardText}>-PKR {data.dynamic_receipt.discount}</Text></View>
+            <View style={[styles.receiptRow, styles.receiptTotal]}><Text style={styles.receiptTotalText}>Grand Total</Text><Text style={styles.receiptTotalText}>PKR {data.dynamic_receipt.grand_total}</Text></View>
+          </View>
+        )}
+
+        {data.client_confirmation_sms && (
+          <View style={[styles.card, styles.smsCard]}>
+            <Text style={styles.cardHeader}>💬 SMS Notification (Draft)</Text>
+            <Text style={styles.smsText}>{data.client_confirmation_sms}</Text>
+          </View>
+        )}
+
+        {data.follow_up_schedule && data.follow_up_schedule.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardHeader}>⏱️ Follow-up Schedule</Text>
+            {data.follow_up_schedule.map((step, index) => (
+              <View key={index} style={styles.stepperItem}>
+                <View style={styles.stepperBullet} />
+                <View style={styles.stepperContent}>
+                  <Text style={styles.stepperTitle}>{step.state}</Text>
+                  <Text style={styles.stepperTime}>{new Date(step.timestamp).toLocaleTimeString()}</Text>
+                  <Text style={styles.cardText}>{step.message}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {data.dispute_resolution_logs && data.dispute_resolution_logs.length > 0 && (
+          <View style={[styles.card, styles.errorCard]}>
+             <Text style={styles.cardHeader}>⚠️ Dispute Logs</Text>
+             {data.dispute_resolution_logs.map((log, index) => (
+               <Text key={index} style={styles.cardText}>- Collided with {log.provider_name}. Resolved.</Text>
+             ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderErrorBoundary = () => {
+    if (errorMsg) {
+      return (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorCardText}>{errorMsg}</Text>
+        </View>
+      );
+    }
+    if (response && response.status === 'error') {
+       return (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorCardText}>Orchestrator Error: {response.message}</Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Neon Cyber-Orchestrator</Text>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="I need a plumber urgently..."
+          placeholderTextColor="#64748B"
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={handleExecute}
+        />
+        <TouchableOpacity style={styles.button} onPress={handleExecute} disabled={loading}>
+          {loading ? <ActivityIndicator color="#0F172A" /> : <Text style={styles.buttonText}>EXECUTE</Text>}
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.mainScroll} contentContainerStyle={styles.scrollContent}>
+        {renderErrorBoundary()}
+        {renderGatekeeper()}
+        {renderAgentTrace()}
+        
+        {response && response.status === 'success' && (
+           <>
+             {renderProviderOptions()}
+             {renderActionSimulation()}
+           </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#0F172A', // Slate 900
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+  },
+  header: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#06B6D4', // Neon Cyan
+    fontSize: 20,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#1E293B',
+    color: '#F8FAFC',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  button: {
+    backgroundColor: '#10B981', // Emerald 500
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: '#0F172A',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  mainScroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+    gap: 16,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    color: '#F8FAFC',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#06B6D4',
+    paddingLeft: 8,
+  },
+  amberCard: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: '#F59E0B', // Amber 500
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  amberCardTitle: {
+    color: '#F59E0B',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  amberCardText: {
+    color: '#FDE68A',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  errorCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  errorCardText: {
+    color: '#FCA5A5',
+    fontSize: 15,
+  },
+  consoleContainer: {
+    backgroundColor: '#020617', // Extremely dark for contrast
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#06B6D4', // Cyan border
+    overflow: 'hidden',
+    marginBottom: 16,
+    height: 250,
+  },
+  consoleHeader: {
+    color: '#06B6D4',
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#164E63',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  consoleScroll: {
+    padding: 12,
+  },
+  traceBlock: {
+    marginBottom: 12,
+  },
+  traceAgent: {
+    color: '#10B981', // Emerald for the agent name
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontWeight: 'bold',
+    marginBottom: 2,
+    fontSize: 13,
+  },
+  traceThought: {
+    color: '#94A3B8', // Muted slate
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginBottom: 2,
+    fontSize: 12,
+  },
+  traceAction: {
+    color: '#06B6D4', // Cyan for action
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 12,
+  },
+  card: {
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  bestMatchCard: {
+    borderColor: '#06B6D4', // Cyan glow-like border
+    borderWidth: 2,
+  },
+  bestMatchTitle: {
+    color: '#06B6D4',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  cardHeader: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  cardText: {
+    color: '#CBD5E1',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  reasoningBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#06B6D4',
+  },
+  reasoningText: {
+    color: '#A5F3FC',
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  alternativesContainer: {
+    marginTop: 8,
+  },
+  alternativesHeader: {
+    color: '#94A3B8',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  altCard: {
+    width: 200,
+    marginRight: 12,
+    marginBottom: 0,
+  },
+  altTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  receiptRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  receiptTotal: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  receiptTotalText: {
+    color: '#10B981',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  smsCard: {
+    backgroundColor: '#0F172A',
+    borderStyle: 'dashed',
+  },
+  smsText: {
+    color: '#E2E8F0',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  stepperItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  stepperBullet: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#06B6D4',
+    marginTop: 4,
+    marginRight: 12,
+  },
+  stepperContent: {
+    flex: 1,
+  },
+  stepperTitle: {
+    color: '#F8FAFC',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  stepperTime: {
+    color: '#64748B',
+    fontSize: 12,
+    marginBottom: 4,
+  }
+});
