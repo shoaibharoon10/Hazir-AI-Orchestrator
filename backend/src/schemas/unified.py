@@ -8,7 +8,7 @@ from src.schemas.booking import BookingSummaryOutput
 class UnifiedOrchestratorInput(BaseModel):
     query: str
     customer_id: str
-    user_location: str
+    user_location: Optional[str] = None
 
 class UnifiedOrchestratorOutput(BaseModel):
     status: str = "success"

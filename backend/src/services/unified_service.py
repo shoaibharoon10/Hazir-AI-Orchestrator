@@ -133,6 +133,13 @@ class UnifiedOrchestratorService:
         extracted_location = _coerce_slot(intent_data.location_context) or _coerce_slot(request.user_location)
         extracted_time = _coerce_slot(intent_data.time_preference)
 
+        print("=== [X-RAY GATEKEEPER DIAGNOSTICS] ===")
+        print(f"RAW INTENT CATEGORY: {intent_data.service_category}")
+        print(f"RAW INTENT LOCATION: {extracted_location}")
+        print(f"RAW INTENT TIME: {extracted_time}")
+        print(f"ALLOWED CATEGORIES: {ALLOWED_CATEGORIES}")
+        print("======================================")
+
         # STEP A — Unsupported service guard (fires before location/time)
         if not intent_data.service_category or intent_data.service_category not in ALLOWED_CATEGORIES:
             agent_trace.append({
