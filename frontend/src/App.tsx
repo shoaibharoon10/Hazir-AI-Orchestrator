@@ -12,6 +12,17 @@ function App() {
   const [devMode, setDevMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [rating, setRating] = useState(0);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  React.useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const handleExecute = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,12 +303,37 @@ function App() {
 
       <div className="w-full bg-white dark:bg-slate-800/80 dark:backdrop-blur-md p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl flex flex-col gap-5">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white text-center mb-2">Authentication Hub</h2>
-        <input type="email" placeholder="Email Address" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
-        <input type="password" placeholder="Password" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        {authError && <p className="text-red-500 font-bold text-center text-sm shadow-sm">{authError}</p>}
+        <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
         
         <div className="flex flex-col gap-4 mt-4">
-          <button onClick={() => setCurrentScreen('dashboard')} className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all active:scale-[0.98]">Login As User</button>
-          <button onClick={() => setCurrentScreen('provider_dashboard')} className="w-full bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-bold py-4 rounded-xl border-2 border-cyan-500/50 hover:border-cyan-500 dark:hover:border-cyan-400 transition-all active:scale-[0.98]">Login as Service Provider</button>
+          <button 
+            onClick={() => {
+              if (!email.trim() || !password.trim()) {
+                setAuthError('Invalid credentials. Please enter email and password.');
+                return;
+              }
+              setAuthError('');
+              setCurrentScreen('dashboard');
+            }} 
+            className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all active:scale-[0.98]"
+          >
+            Login As User
+          </button>
+          <button 
+            onClick={() => {
+              if (!email.trim() || !password.trim()) {
+                setAuthError('Invalid credentials. Please enter email and password.');
+                return;
+              }
+              setAuthError('');
+              setCurrentScreen('provider_dashboard');
+            }} 
+            className="w-full bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-bold py-4 rounded-xl border-2 border-cyan-500/50 hover:border-cyan-500 dark:hover:border-cyan-400 transition-all active:scale-[0.98]"
+          >
+            Login as Service Provider
+          </button>
         </div>
 
         <div className="flex justify-between mt-2 px-1">
