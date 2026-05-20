@@ -803,7 +803,7 @@ const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
         working_hours: { start: startTime, end: endTime }
       };
 
-      const res = await fetch('http://127.0.0.1:8000/api/auth/register-provider', {
+      const res = await fetch('http://192.168.10.7:8000/api/auth/register-provider', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
