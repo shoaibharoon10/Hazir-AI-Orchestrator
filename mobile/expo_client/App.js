@@ -280,8 +280,8 @@ const useStyles = (isDarkMode) => {
       fontWeight: '600',
     },
     cityChip: {
-      backgroundColor: '#10B981',
-      borderWidth: 2,
+      backgroundColor: '#0F172A',
+      borderWidth: 1.5,
       borderColor: '#06B6D4',
       borderRadius: 12,
       paddingVertical: 12,
@@ -291,6 +291,20 @@ const useStyles = (isDarkMode) => {
       shadowOpacity: 0.8,
       shadowRadius: 10,
       elevation: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    liveDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: '#06B6D4',
+      marginRight: 10,
+      shadowColor: '#06B6D4',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 6,
+      elevation: 6,
     },
     cityChipText: {
       color: '#FFFFFF',
@@ -797,6 +811,24 @@ const InteractiveRating = ({ isDarkMode }) => {
 
 const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, response, errorMsg, handleExecute, isDarkMode, setIsDarkMode, devMode, setDevMode }) => {
   const styles = useStyles(isDarkMode);
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
+  }, [pulseAnim]);
 
   const renderGatekeeper = () => {
     if (!response || response.status === 'success' || response.status === 'error') return null;
@@ -1001,7 +1033,8 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
 
             <Text style={styles.emptySectionTitle}>CURRENTLY SERVING IN</Text>
             <View style={styles.cityChip}>
-              <Text style={styles.cityChipText}>📍 Karachi</Text>
+              <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
+              <Text style={styles.cityChipText}>Karachi</Text>
             </View>
           </View>
         )}
