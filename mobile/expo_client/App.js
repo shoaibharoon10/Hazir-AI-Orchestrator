@@ -763,20 +763,100 @@ const SignupUserScreen = ({ setCurrentScreen, isDarkMode }) => {
 
 const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
   const styles = useStyles(isDarkMode);
+  
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [category, setCategory] = useState('');
+  const [baseFee, setBaseFee] = useState('');
+  const [specializations, setSpecializations] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleProviderSignup = async () => {
+    if (!name.trim() || !email.trim() || !phone.trim() || !password.trim() || !address.trim() || !city.trim() || !category.trim() || !baseFee.trim() || !specializations.trim() || !startTime.trim() || !endTime.trim()) {
+      setAuthError('Please fill out all fields.');
+      return;
+    }
+    
+    setAuthError('');
+    setLoading(true);
+
+    try {
+      const specializationsArray = specializations.split(',').map(s => s.trim()).filter(s => s);
+      
+      const payload = {
+        name,
+        email,
+        phone,
+        password,
+        address,
+        city,
+        category,
+        base_price: parseFloat(baseFee) || 0,
+        specializations: specializationsArray,
+        working_hours: { start: startTime, end: endTime }
+      };
+
+      const res = await fetch('http://127.0.0.1:8000/api/auth/register-provider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || 'Registration failed');
+      }
+
+      // Success
+      setName('');
+      setEmail('');
+      setPhone('');
+      setPassword('');
+      setAddress('');
+      setCity('');
+      setCategory('');
+      setBaseFee('');
+      setSpecializations('');
+      setStartTime('');
+      setEndTime('');
+      setCurrentScreen('provider_dashboard');
+    } catch (err) {
+      console.error(err);
+      setAuthError(err.message || "Network error during registration.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.centerScroll}>
       <View style={styles.authCard}>
         <Text style={styles.authTitle}>Provider Signup</Text>
-        <TextInput style={styles.inputAuth} placeholder="Full Name *" placeholderTextColor="#64748B" />
-        <TextInput style={styles.inputAuth} placeholder="Email *" placeholderTextColor="#64748B" keyboardType="email-address" />
-        <TextInput style={styles.inputAuth} placeholder="Phone Number *" placeholderTextColor="#64748B" keyboardType="phone-pad" />
-        <TextInput style={styles.inputAuth} placeholder="Password *" placeholderTextColor="#64748B" secureTextEntry />
-        <TextInput style={styles.inputAuth} placeholder="Address *" placeholderTextColor="#64748B" />
-        <TextInput style={styles.inputAuth} placeholder="City *" placeholderTextColor="#64748B" />
-        <TextInput style={styles.inputAuth} placeholder="Service Category *" placeholderTextColor="#64748B" />
-        <TextInput style={styles.inputAuth} placeholder="Base Fee *" placeholderTextColor="#64748B" keyboardType="numeric" />
-        <TouchableOpacity style={[styles.secondaryBtn, { marginTop: 10 }]} onPress={() => setCurrentScreen('provider_dashboard')}>
-          <Text style={styles.secondaryBtnText}>Register Provider</Text>
+        
+        {authError ? <Text style={{ color: '#EF4444', textAlign: 'center', fontWeight: 'bold', marginBottom: 10 }}>{authError}</Text> : null}
+        
+        <TextInput style={styles.inputAuth} placeholder="Full Name *" placeholderTextColor="#64748B" value={name} onChangeText={setName} />
+        <TextInput style={styles.inputAuth} placeholder="Email *" placeholderTextColor="#64748B" keyboardType="email-address" value={email} onChangeText={setEmail} />
+        <TextInput style={styles.inputAuth} placeholder="Phone Number *" placeholderTextColor="#64748B" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+        <TextInput style={styles.inputAuth} placeholder="Password *" placeholderTextColor="#64748B" secureTextEntry value={password} onChangeText={setPassword} />
+        <TextInput style={styles.inputAuth} placeholder="Address *" placeholderTextColor="#64748B" value={address} onChangeText={setAddress} />
+        <TextInput style={styles.inputAuth} placeholder="City *" placeholderTextColor="#64748B" value={city} onChangeText={setCity} />
+        <TextInput style={styles.inputAuth} placeholder="Service Category *" placeholderTextColor="#64748B" value={category} onChangeText={setCategory} />
+        <TextInput style={styles.inputAuth} placeholder="Base Fee *" placeholderTextColor="#64748B" keyboardType="numeric" value={baseFee} onChangeText={setBaseFee} />
+        
+        <TextInput style={styles.inputAuth} placeholder="Specializations/Skills (comma separated) *" placeholderTextColor="#64748B" value={specializations} onChangeText={setSpecializations} />
+        <TextInput style={styles.inputAuth} placeholder="Start Time (e.g., 09:00 AM) *" placeholderTextColor="#64748B" value={startTime} onChangeText={setStartTime} />
+        <TextInput style={styles.inputAuth} placeholder="End Time (e.g., 06:00 PM) *" placeholderTextColor="#64748B" value={endTime} onChangeText={setEndTime} />
+        
+        <TouchableOpacity style={[styles.secondaryBtn, { marginTop: 10 }]} onPress={handleProviderSignup} disabled={loading}>
+          {loading ? <ActivityIndicator color="#0F172A" /> : <Text style={styles.secondaryBtnText}>Register Provider</Text>}
         </TouchableOpacity>
         <TouchableOpacity style={{ marginTop: 15, alignItems: 'center' }} onPress={() => setCurrentScreen('auth_choice')}>
           <Text style={styles.linkText}>Back to Login</Text>
