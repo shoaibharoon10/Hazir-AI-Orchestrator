@@ -69,6 +69,18 @@ The complete execution pipeline of Hazir:
 
 ---
 
+## 📈 Baseline Comparison
+
+Traditional directory apps (like JustDial or Facebook Groups) require users to manually search, filter, negotiate prices, and check availability. Hazir reduces a 15-minute frustrating search-and-negotiate process into a **< 5 second atomic interaction** via GenAI orchestration.
+
+---
+
+## 🔒 Privacy Note
+
+All extracted PII (Personally Identifiable Information) such as location and time preferences are isolated within the orchestrator's state and are not persisted in public databases. Service provider data used in matching is strictly synthetic/mocked for the duration of this hackathon, ensuring no real-world data leaks.
+
+---
+
 ## ⚠️ Assumptions & Limitations
 
 - **Synthetic Data Reliance:** For the sake of the hackathon demo, the system relies heavily on the 60-provider in-memory synthetic dataset to guarantee robust presentation stability.
