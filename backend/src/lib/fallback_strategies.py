@@ -44,6 +44,8 @@ def execute_regex_fallback(query: str) -> APIResponseSchema:
         category = "Beautician"
     elif re.search(r'\b(appliance|wash|fridge|freez|microwave|oven|geyser|geezar|machine\s*band)', q_lower):
         category = "Appliance Repair"
+    elif re.search(r'\b(tutor|parhana|math|teacher|academy|school|science|english|tuition|parhai)', q_lower):
+        category = "Tutor"
 
     if not category:
         logger.warning("[Fallback] Could not determine service category from query tokens.")

@@ -14,7 +14,7 @@ from src.services.booking_service import BookingService, DoubleBookingError
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_CATEGORIES = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair"]
+ALLOWED_CATEGORIES = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair", "Tutor"]
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +95,7 @@ class UnifiedOrchestratorService:
             })
             raise SlotFillingError(
                 "Maazrat, main aap ki baat samajh nahi paya. Kya aap bata sakte hain "
-                "aap ko konsi service (AC, Plumber, Electrician, Beautician) chahiye?",
+                "aap ko konsi service (AC, Plumber, Electrician, Beautician, Appliance Repair, Tutor) chahiye?",
                 agent_trace=agent_trace
             )
 
@@ -108,7 +108,7 @@ class UnifiedOrchestratorService:
             })
             raise SlotFillingError(
                 "Maazrat, main aap ki baat samajh nahi paya. Kya aap bata sakte hain "
-                "aap ko konsi service (AC, Plumber, Electrician, Beautician) chahiye?",
+                "aap ko konsi service (AC, Plumber, Electrician, Beautician, Appliance Repair, Tutor) chahiye?",
                 agent_trace=agent_trace
             )
 
@@ -150,7 +150,7 @@ class UnifiedOrchestratorService:
             raise UnsupportedServiceError(
                 "Maazrat! Hamare paas filhal yeh service operational nahi hai. "
                 "Currently hum Karachi mein sirf in core vertical services ke sath deal kar rahe hain: "
-                "AC Technician, Plumber, Electrician, Beautician, aur Appliance Repair.",
+                "AC Technician, Plumber, Electrician, Beautician, Appliance Repair, aur Tutor.",
                 agent_trace=agent_trace
             )
 

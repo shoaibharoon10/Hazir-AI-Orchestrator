@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 try:
     from google import genai
+    # pyrefly: ignore [missing-import]
     from google.genai import types
     GENAI_AVAILABLE = True
 except ImportError:
@@ -25,7 +26,7 @@ Do NOT output markdown code blocks, do not add conversational text, and do not e
 
 Schema:
 {
-  "service_category": "AC Technician" | "Electrician" | "Plumber" | "Beautician" | "Appliance Repair" | null,
+  "service_category": "AC Technician" | "Electrician" | "Plumber" | "Beautician" | "Appliance Repair" | "Tutor" | null,
   "location_context": "string or null",
   "time_preference": "string or null",
   "urgency_level": "normal" | "urgent" | "very urgent",
@@ -39,6 +40,7 @@ Extraction Rules:
    - "Plumber": water, leak, pipe, tap, motor, drain, پانی, ٹونٹی, nal band
    - "Beautician": salon, makeup, beauty, parlour, facial, mehndi, threading, بیوٹی پارلر, ميک اپ
    - "Appliance Repair": washing machine, fridge, microwave, dishwasher, گیزر, oven, machine band hai
+   - "Tutor": tutor, teacher, parhana, tuition, math, science, english, academy, school, پڑھائی
    - If ambiguous or completely unsupported, set to null.
 2. 'location_context': Extract any Karachi area (Clifton, DHA, Gulshan, Johar, Nazimabad, Sadar, etc.). Null if not provided.
 3. 'time_preference': Extract timeframe as implied ("aaj sham 5 baje" -> "today 5 PM", "kal subah" -> "tomorrow morning"). Null if not mentioned.
