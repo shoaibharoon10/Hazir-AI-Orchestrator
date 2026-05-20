@@ -55,6 +55,7 @@ class ProviderMatchingEngine:
             reliability_score = round(random.uniform(0.7, 1.0), 2)
             review_recency = random.randint(1, 30)
             capacity_slots = random.randint(1, 5)
+            active_jobs_this_week = random.randint(0, 15)
             base_price = round(random.uniform(800.0, 3500.0), 2)
             
             seeded.append({
@@ -70,6 +71,7 @@ class ProviderMatchingEngine:
                 "reliability_score": reliability_score,
                 "review_recency": review_recency,
                 "capacity_slots": capacity_slots,
+                "active_jobs_this_week": active_jobs_this_week,
                 "base_price": base_price
             })
         return seeded
@@ -94,22 +96,25 @@ class ProviderMatchingEngine:
 
                 floored_distance = max(1.2, distance_km)
 
-                # Normalize 6 factors (score between 0.0 and 1.0, where 1.0 is best)
+                # Normalize 7 factors (score between 0.0 and 1.0, where 1.0 is best)
                 norm_distance = max(0.0, 1.0 - (floored_distance / 30.0))
                 norm_rating = p["rating"] / 5.0
                 norm_reliability = p["reliability_score"]
                 norm_price = max(0.0, 1.0 - (p["base_price"] / 4000.0))
                 norm_cancellation = max(0.0, 1.0 - (p["cancellation_rate"] / 0.5))
                 norm_recency = max(0.0, 1.0 - (p["review_recency"] / 30.0))
+                norm_workload = max(0.0, 1.0 - (p["active_jobs_this_week"] / 20.0)) # Lower workload gets a boost
 
-                # Apply Weights
+                # Apply Weights (Sum = 1.0)
+                # Distance: 0.20, Rating: 0.20, Reliability: 0.15, Price: 0.15, Cancellation: 0.10, Recency: 0.10, Workload: 0.10
                 match_score = (
-                    (norm_distance * 0.25) +
+                    (norm_distance * 0.20) +
                     (norm_rating * 0.20) +
-                    (norm_reliability * 0.20) +
+                    (norm_reliability * 0.15) +
                     (norm_price * 0.15) +
                     (norm_cancellation * 0.10) +
-                    (norm_recency * 0.10)
+                    (norm_recency * 0.10) +
+                    (norm_workload * 0.10)
                 )
                 match_score = round(max(0.1, min(1.0, match_score)), 3)
 
@@ -124,6 +129,7 @@ class ProviderMatchingEngine:
                     "reliability_score": p["reliability_score"],
                     "review_recency": p["review_recency"],
                     "capacity_slots": p["capacity_slots"],
+                    "active_jobs_this_week": p["active_jobs_this_week"],
                     "base_price": p["base_price"],
                     "match_score": match_score,
                 })

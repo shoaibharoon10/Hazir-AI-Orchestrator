@@ -10,6 +10,7 @@ from src.api.orchestrate.pricing import router as pricing_router
 from src.api.orchestrate.booking import router as booking_router
 from src.api.orchestrate.unified import router as unified_router
 from src.api.orchestrate.auth import router as auth_router
+from src.api.orchestrate.workflows import router as workflows_router
 
 app = FastAPI(
     title="AI Service Orchestrator API",
@@ -36,6 +37,7 @@ app.include_router(pricing_router)
 app.include_router(booking_router)
 app.include_router(unified_router)
 app.include_router(auth_router)
+app.include_router(workflows_router)
 
 @app.get("/health")
 def health_check():
