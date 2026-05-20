@@ -31,7 +31,8 @@ const useStyles = (isDarkMode) => {
     },
     splashContainer: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
+      paddingTop: '35%',
       alignItems: 'center',
       backgroundColor: t.background,
     },
@@ -78,12 +79,13 @@ const useStyles = (isDarkMode) => {
     authLogo: {
       width: 210,
       height: 210,
+      marginBottom: -30,
     },
     authWelcome: {
       color: t.text,
       fontSize: 32,
       fontWeight: 'bold',
-      marginTop: -20,
+      marginTop: -10,
     },
     splashSubtitleAuth: {
       color: t.accent,
@@ -203,8 +205,8 @@ const useStyles = (isDarkMode) => {
       letterSpacing: 1,
     },
     headerLogo: {
-      height: 84,
-      width: 90,
+      height: 101,
+      width: 108,
       resizeMode: 'contain',
     },
     headerSubtitle: {
@@ -278,20 +280,20 @@ const useStyles = (isDarkMode) => {
       fontWeight: '600',
     },
     cityChip: {
-      backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
+      backgroundColor: '#10B981',
       borderWidth: 2,
-      borderColor: t.primary,
+      borderColor: '#06B6D4',
       borderRadius: 12,
       paddingVertical: 12,
       paddingHorizontal: 32,
-      shadowColor: t.primary,
+      shadowColor: '#06B6D4',
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: isDarkMode ? 0.3 : 0.1,
-      shadowRadius: 6,
-      elevation: 4,
+      shadowOpacity: 0.8,
+      shadowRadius: 10,
+      elevation: 10,
     },
     cityChipText: {
-      color: t.primary,
+      color: '#FFFFFF',
       fontSize: 18,
       fontWeight: 'bold',
       letterSpacing: 1.5,
@@ -999,7 +1001,7 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
 
             <Text style={styles.emptySectionTitle}>CURRENTLY SERVING IN</Text>
             <View style={styles.cityChip}>
-              <Text style={styles.cityChipText}>Karachi</Text>
+              <Text style={styles.cityChipText}>📍 Karachi</Text>
             </View>
           </View>
         )}
