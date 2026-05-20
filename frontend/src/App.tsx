@@ -314,6 +314,13 @@ function App() {
 
       {/* Error Message */}
       {errorMsg && <div className="p-4 bg-red-100 dark:bg-red-900/20 border border-red-500/50 rounded-2xl text-red-700 dark:text-red-400 text-center shadow-sm dark:shadow-none">{errorMsg}</div>}
+      
+      {/* Duplicate Warning */}
+      {response?.data?.booking_summary?.current_status === "duplicate_detected" && (
+        <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-500/50 rounded-2xl text-yellow-700 dark:text-yellow-400 text-center shadow-sm dark:shadow-none font-bold">
+          Duplicate booking detected. Showing existing confirmed booking.
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex flex-col gap-6">

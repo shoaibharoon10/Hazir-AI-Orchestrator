@@ -1104,6 +1104,11 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
 
       <ScrollView style={styles.mainScroll} contentContainerStyle={styles.scrollContent}>
         {renderErrorBoundary()}
+        {response?.data?.booking_summary?.current_status === "duplicate_detected" && (
+          <View style={[styles.errorCard, { backgroundColor: 'rgba(234, 179, 8, 0.2)', borderColor: '#EAB308' }]}>
+            <Text style={[styles.errorCardText, { color: '#CA8A04' }]}>Duplicate booking detected. Showing existing confirmed booking.</Text>
+          </View>
+        )}
         {renderGatekeeper()}
         {renderAgentTrace()}
 

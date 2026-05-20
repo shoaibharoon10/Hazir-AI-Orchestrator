@@ -12,7 +12,7 @@ class BookingRequestInput(BaseModel):
 class BookingSummaryOutput(BaseModel):
     booking_id: str
     provider_id: str
-    current_status: Literal["pending", "confirmed", "en_route", "completed"]
+    current_status: Literal["pending", "confirmed", "en_route", "completed", "duplicate_detected", "slot_unavailable"]
     net_price: float = Field(ge=0.0)
     timestamp: str
     external_sync: bool = False

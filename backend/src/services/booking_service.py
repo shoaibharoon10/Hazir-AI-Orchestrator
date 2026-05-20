@@ -2,9 +2,36 @@ import logging
 import uuid
 import datetime
 
+import re
+import hashlib
+
 logger = logging.getLogger(__name__)
 
-GLOBAL_MOCK_BOOKINGS = {}
+GLOBAL_CONFIRMED_BOOKINGS = {}
+GLOBAL_PROVIDER_LOCKS = {}
+
+def normalize_time(raw_time: str) -> str:
+    """Safely converts various time formats into a standard HH:MM 24-hour format."""
+    if not raw_time:
+        return "UNKNOWN_TIME"
+    
+    raw_time = raw_time.strip().lower()
+    
+    # Try to match HH:MM am/pm or HH am/pm
+    match = re.search(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)?', raw_time)
+    if not match:
+        return raw_time # fallback
+        
+    hour_str, min_str, period = match.groups()
+    hour = int(hour_str)
+    minute = int(min_str) if min_str else 0
+    
+    if period == 'pm' and hour < 12:
+        hour += 12
+    elif period == 'am' and hour == 12:
+        hour = 0
+        
+    return f"{hour:02d}:{minute:02d}"
 
 class BookingStateError(Exception):
     """Raised when an illegal FSM state transition is attempted."""
@@ -28,22 +55,17 @@ class BookingService:
         "cancelled": []
     }
 
-    def _check_double_booking(self, provider_id: str, scheduled_time: str):
-        """T005: Deterministic double-booking prevention matrix (in-memory lock checking)."""
-        if provider_id in GLOBAL_MOCK_BOOKINGS:
-            if scheduled_time in GLOBAL_MOCK_BOOKINGS[provider_id]:
-                raise DoubleBookingError(
-                    f"Provider {provider_id} is already booked or within the 30-minute travel buffer for {scheduled_time}.",
-                    alternate_slots=[f"{scheduled_time} (2 hours later)", "Next operational day morning"]
-                )
-        else:
-            GLOBAL_MOCK_BOOKINGS[provider_id] = set()
+    def _check_double_booking(self, provider_slot_key: str, scheduled_time: str, provider_id: str):
+        """T005: Deterministic double-booking prevention matrix."""
+        if provider_slot_key in GLOBAL_PROVIDER_LOCKS:
+            raise DoubleBookingError(
+                f"Provider {provider_id} is already booked or within the 30-minute travel buffer for {scheduled_time}.",
+                alternate_slots=[f"{scheduled_time} (2 hours later)", "Next operational day morning"]
+            )
             
-    def _lock_booking_slot(self, provider_id: str, scheduled_time: str):
+    def _lock_booking_slot(self, provider_slot_key: str, booking_id: str):
         """Locks the provider for the specific time slot."""
-        if provider_id not in GLOBAL_MOCK_BOOKINGS:
-            GLOBAL_MOCK_BOOKINGS[provider_id] = set()
-        GLOBAL_MOCK_BOOKINGS[provider_id].add(scheduled_time)
+        GLOBAL_PROVIDER_LOCKS[provider_slot_key] = booking_id
 
     def transition_state(self, booking_id: str, current_state: str, new_state: str, customer_id: str) -> str:
         """T004: Valid state transition logic (pending -> confirmed -> en_route -> completed)"""
@@ -74,12 +96,23 @@ class BookingService:
         """
         provider_id = request_input.provider_id
         scheduled_time = request_input.scheduled_time
+        norm_time = normalize_time(scheduled_time)
         
-        # 1. Defensive validation check
-        self._check_double_booking(provider_id, scheduled_time)
+        # 1. Idempotency Key Generation
+        raw_key = f"{request_input.customer_id}_{request_input.job_category}_{request_input.location_context}_{norm_time}"
+        duplicate_key = hashlib.md5(raw_key.encode()).hexdigest()
         
-        # 2. Lock slot
-        self._lock_booking_slot(provider_id, scheduled_time)
+        provider_slot_key = f"{provider_id}_{norm_time}"
+        
+        # LOGIC LAYER 1: Idempotency (Duplicate Request)
+        if duplicate_key in GLOBAL_CONFIRMED_BOOKINGS:
+            existing_booking = GLOBAL_CONFIRMED_BOOKINGS[duplicate_key]
+            existing_booking["current_status"] = "duplicate_detected"
+            logger.info(f"Idempotency Triggered: Returning existing booking for key {duplicate_key}")
+            return existing_booking
+        
+        # LOGIC LAYER 2: Double Booking Lock
+        self._check_double_booking(provider_slot_key, scheduled_time, provider_id)
         
         booking_id = f"BKG-{uuid.uuid4().hex[:8].upper()}"
         initial_state = "pending"
@@ -93,7 +126,7 @@ class BookingService:
         external_sync = True
         spreadsheet_row_id = f"ROW-{uuid.uuid4().hex[:6].upper()}"
         
-        return {
+        new_booking = {
             "booking_id": booking_id,
             "provider_id": provider_id,
             "current_status": final_state,
@@ -102,3 +135,9 @@ class BookingService:
             "external_sync": external_sync,
             "spreadsheet_row_id": spreadsheet_row_id
         }
+        
+        # Save state
+        GLOBAL_CONFIRMED_BOOKINGS[duplicate_key] = new_booking.copy()
+        self._lock_booking_slot(provider_slot_key, booking_id)
+        
+        return new_booking
