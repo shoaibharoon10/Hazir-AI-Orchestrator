@@ -54,7 +54,8 @@ async def create_booking(request: BookingRequestInput) -> Union[APIResponseSchem
             status_code=status.HTTP_400_BAD_REQUEST,
             content=APIResponseSchema(
                 success=False,
-                error=str(e)
+                error=str(e),
+                data={"alternate_slots": getattr(e, "alternate_slots", [])}
             ).model_dump()
         )
     except BookingStateError as e:

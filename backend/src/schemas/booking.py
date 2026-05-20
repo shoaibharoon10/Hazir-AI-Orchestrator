@@ -15,3 +15,5 @@ class BookingSummaryOutput(BaseModel):
     current_status: Literal["pending", "confirmed", "en_route", "completed"]
     net_price: float = Field(ge=0.0)
     timestamp: str
+    external_sync: bool = False
+    spreadsheet_row_id: str | None = None

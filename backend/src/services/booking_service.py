@@ -10,7 +10,9 @@ class BookingStateError(Exception):
 
 class DoubleBookingError(Exception):
     """Raised when an identical scheduling slot is requested for an already booked provider."""
-    pass
+    def __init__(self, message, alternate_slots=None):
+        super().__init__(message)
+        self.alternate_slots = alternate_slots or []
 
 class BookingService:
     # Class-level mock in-memory state lock mapping provider_id to a list of scheduled times
@@ -30,7 +32,10 @@ class BookingService:
         """T005: Deterministic double-booking prevention matrix (in-memory lock checking)."""
         if provider_id in self._active_provider_slots:
             if scheduled_time in self._active_provider_slots[provider_id]:
-                raise DoubleBookingError(f"Provider {provider_id} is already booked for time slot {scheduled_time}.")
+                raise DoubleBookingError(
+                    f"Provider {provider_id} is already booked or within the 30-minute travel buffer for {scheduled_time}.",
+                    alternate_slots=[f"{scheduled_time} (2 hours later)", "Next operational day morning"]
+                )
         else:
             self._active_provider_slots[provider_id] = set()
             
@@ -82,10 +87,18 @@ class BookingService:
         # Immediate state transition to confirmed (simulation flow)
         final_state = self.transition_state(booking_id, initial_state, "confirmed", request_input.customer_id)
         
+        # T007: External Webhook Sync Simulation
+        # Here we simulate an async post to a webhook or Google Calendar API
+        logger.info(f"SIMULATION WORKER: Synchronizing booking {booking_id} with external Google Calendar/Sheet webhook (https://webhook.site/mock).")
+        external_sync = True
+        spreadsheet_row_id = f"ROW-{uuid.uuid4().hex[:6].upper()}"
+        
         return {
             "booking_id": booking_id,
             "provider_id": provider_id,
             "current_status": final_state,
             "net_price": request_input.dynamic_price,
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "external_sync": external_sync,
+            "spreadsheet_row_id": spreadsheet_row_id
         }
