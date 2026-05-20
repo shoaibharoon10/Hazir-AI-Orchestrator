@@ -22,6 +22,8 @@ class IntentExtractionSchema(BaseModel):
     urgency_level: Literal["normal", "urgent", "very urgent"] | None = Field(
         "normal", description="The urgency level"
     )
+    constraints: Optional[str] = Field(None, description="Extracted constraints, e.g., budget limits")
+    preferences: Optional[str] = Field(None, description="Extracted preferences, e.g., gender, language")
     confidence_score: float = Field(..., description="Confidence score of the extraction between 0.0 and 1.0")
 
 class IntentErrorResponseSchema(BaseModel):

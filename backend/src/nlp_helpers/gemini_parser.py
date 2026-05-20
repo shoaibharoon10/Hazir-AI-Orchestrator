@@ -30,6 +30,8 @@ Schema:
   "location_context": "string or null",
   "time_preference": "string or null",
   "urgency_level": "normal" | "urgent" | "very urgent",
+  "constraints": "string or null",
+  "preferences": "string or null",
   "confidence_score": float (between 0.0 and 1.0)
 }
 
@@ -45,7 +47,9 @@ Extraction Rules:
 2. 'location_context': Extract any Karachi area (Clifton, DHA, Gulshan, Johar, Nazimabad, Sadar, etc.). Null if not provided.
 3. 'time_preference': Extract timeframe as implied ("aaj sham 5 baje" -> "today 5 PM", "kal subah" -> "tomorrow morning"). Null if not mentioned.
 4. 'urgency_level': "normal", "urgent", or "very urgent" based on keywords like "bohot zaruri", "فوری", "emergency", "abhi", "foran". Default "normal".
-5. 'confidence_score': >0.85 if clear service and location. <0.70 if service category is vague or guessed.
+5. 'constraints': Any explicit limitations like budget ("budget < 2000", "sasta wala") or specific requirements. Null if not mentioned.
+6. 'preferences': Any user preference ("female provider", "expert", "english speaking"). Null if not mentioned.
+7. 'confidence_score': >0.85 if clear service and location. <0.70 if service category is vague or guessed.
 """
 
 class GeminiIntentParser:

@@ -51,6 +51,12 @@ class ProviderMatchingEngine:
             rating = round(random.uniform(3.8, 5.0), 1)
             tier = random.choice(tiers)
             
+            cancellation_rate = round(random.uniform(0.0, 0.2), 2)
+            reliability_score = round(random.uniform(0.7, 1.0), 2)
+            review_recency = random.randint(1, 30)
+            capacity_slots = random.randint(1, 5)
+            base_price = round(random.uniform(800.0, 3500.0), 2)
+            
             seeded.append({
                 "provider_id": f"PRO-{1000 + i}",
                 "name": name,
@@ -59,7 +65,12 @@ class ProviderMatchingEngine:
                 "latitude": lat,
                 "longitude": lon,
                 "rating": rating,
-                "tier": tier
+                "tier": tier,
+                "cancellation_rate": cancellation_rate,
+                "reliability_score": reliability_score,
+                "review_recency": review_recency,
+                "capacity_slots": capacity_slots,
+                "base_price": base_price
             })
         return seeded
 
@@ -81,9 +92,26 @@ class ProviderMatchingEngine:
                 lon_diff = p["longitude"] - user_lon
                 distance_km = round(math.sqrt(lat_diff**2 + lon_diff**2) * 111.0, 2)
 
-                match_score = round((5.0 - (distance_km / 10.0)) * 0.6 + (p["rating"] * 0.4), 2)
-                match_score = max(0.1, min(1.0, match_score))
                 floored_distance = max(1.2, distance_km)
+
+                # Normalize 6 factors (score between 0.0 and 1.0, where 1.0 is best)
+                norm_distance = max(0.0, 1.0 - (floored_distance / 30.0))
+                norm_rating = p["rating"] / 5.0
+                norm_reliability = p["reliability_score"]
+                norm_price = max(0.0, 1.0 - (p["base_price"] / 4000.0))
+                norm_cancellation = max(0.0, 1.0 - (p["cancellation_rate"] / 0.5))
+                norm_recency = max(0.0, 1.0 - (p["review_recency"] / 30.0))
+
+                # Apply Weights
+                match_score = (
+                    (norm_distance * 0.25) +
+                    (norm_rating * 0.20) +
+                    (norm_reliability * 0.20) +
+                    (norm_price * 0.15) +
+                    (norm_cancellation * 0.10) +
+                    (norm_recency * 0.10)
+                )
+                match_score = round(max(0.1, min(1.0, match_score)), 3)
 
                 matched_list.append({
                     "provider_id": p["provider_id"],
@@ -92,11 +120,16 @@ class ProviderMatchingEngine:
                     "distance_km": floored_distance,
                     "rating": p["rating"],
                     "tier": p["tier"],
+                    "cancellation_rate": p["cancellation_rate"],
+                    "reliability_score": p["reliability_score"],
+                    "review_recency": p["review_recency"],
+                    "capacity_slots": p["capacity_slots"],
+                    "base_price": p["base_price"],
                     "match_score": match_score,
                 })
 
-        # Sort ascending by distance (closest first)
-        matched_list.sort(key=lambda x: x["distance_km"])
+        # Sort descending by match_score (highest score first)
+        matched_list.sort(key=lambda x: x["match_score"], reverse=True)
 
         if not matched_list:
             logger.warning(f"No providers found for category '{category}' near '{location_text}'")
