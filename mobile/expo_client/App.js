@@ -36,8 +36,8 @@ const useStyles = (isDarkMode) => {
       backgroundColor: t.background,
     },
     splashLogo: {
-      width: '60%',
-      height: 150,
+      width: 300,
+      height: 300,
       marginBottom: 20,
     },
     splashSubtitle: {
@@ -75,8 +75,8 @@ const useStyles = (isDarkMode) => {
       marginBottom: 32,
     },
     authLogo: {
-      width: '80%',
-      height: 160,
+      width: 250,
+      height: 250,
     },
     splashSubtitleAuth: {
       color: t.accent,
@@ -181,8 +181,8 @@ const useStyles = (isDarkMode) => {
       letterSpacing: 1,
     },
     headerLogo: {
-      height: 28,
-      width: 100,
+      height: 50,
+      width: 150,
       resizeMode: 'contain',
     },
     headerSubtitle: {
@@ -553,8 +553,8 @@ const useStyles = (isDarkMode) => {
       marginBottom: 12,
     },
     receiptLogo: {
-      width: 30,
-      height: 30,
+      width: 60,
+      height: 60,
       marginRight: 8,
     },
     themeToggleFloat: {
