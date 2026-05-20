@@ -1,38 +1,539 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView,
-  ActivityIndicator, SafeAreaView, Platform, StatusBar, Animated
+  ActivityIndicator, SafeAreaView, Platform, StatusBar, Animated, Image, Switch
 } from 'react-native';
 
 const BACKEND_URL = 'http://192.168.10.6:8000/api/orchestrate/run-all';
 
-const SplashScreen = ({ setCurrentScreen }) => {
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+const getTheme = (isDarkMode) => ({
+  background: isDarkMode ? '#0F172A' : '#F8FAFC',
+  cardBackground: isDarkMode ? '#1E293B' : '#FFFFFF',
+  text: isDarkMode ? '#F8FAFC' : '#0F172A',
+  subText: isDarkMode ? '#94A3B8' : '#64748B',
+  border: isDarkMode ? '#334155' : '#E2E8F0',
+  primary: '#10B981',
+  secondary: '#06B6D4',
+  accent: '#F59E0B',
+  errorBackground: isDarkMode ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2',
+  consoleBackground: isDarkMode ? '#020617' : '#F1F5F9',
+  consoleText: isDarkMode ? '#94A3B8' : '#475569',
+});
+
+const useStyles = (isDarkMode) => {
+  const t = getTheme(isDarkMode);
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: t.background,
+      paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+    },
+    splashContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: t.background,
+    },
+    splashLogo: {
+      width: 250,
+      height: 120,
+      marginBottom: 20,
+    },
+    splashSubtitle: {
+      color: t.accent,
+      fontSize: 18,
+      fontStyle: 'italic',
+      marginBottom: 40,
+    },
+    loadingBarContainer: {
+      width: 250,
+      height: 6,
+      backgroundColor: t.border,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    loadingBarFill: {
+      height: '100%',
+      backgroundColor: t.secondary,
+      shadowColor: t.secondary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.8,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    // AUTH HUB
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: t.background,
+    },
+    authBrandContainer: {
+      alignItems: 'center',
+      marginBottom: 32,
+    },
+    authLogo: {
+      width: 280,
+      height: 90,
+    },
+    splashSubtitleAuth: {
+      color: t.accent,
+      fontSize: 16,
+      fontStyle: 'italic',
+      marginTop: 8,
+    },
+    validationError: {
+      color: '#EF4444',
+      marginBottom: 12,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    centerScroll: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: 16,
+      backgroundColor: t.background,
+    },
+    authCard: {
+      width: '100%',
+      backgroundColor: t.cardBackground,
+      borderRadius: 16,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: t.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isDarkMode ? 0.3 : 0.1,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    authTitle: {
+      color: t.text,
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 24,
+      textAlign: 'center',
+    },
+    inputAuth: {
+      backgroundColor: t.background,
+      color: t.text,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: t.border,
+      marginBottom: 16,
+    },
+    btnRow: {
+      flexDirection: 'column',
+      gap: 12,
+      marginTop: 8,
+    },
+    primaryBtn: {
+      backgroundColor: t.primary,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    primaryBtnText: {
+      color: '#0F172A',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    secondaryBtn: {
+      backgroundColor: t.secondary,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    secondaryBtnText: {
+      color: '#0F172A',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    linkRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 24,
+    },
+    linkText: {
+      color: t.subText,
+      fontSize: 14,
+      textDecorationLine: 'underline',
+    },
+    // SHARED DASHBOARD
+    header: {
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: t.border,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: t.cardBackground,
+    },
+    headerTitle: {
+      color: t.secondary,
+      fontSize: 20,
+      fontWeight: 'bold',
+      letterSpacing: 1,
+    },
+    headerSubtitle: {
+      color: t.accent,
+      fontSize: 12,
+      fontStyle: 'italic',
+      marginTop: 2,
+    },
+    headerControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    switchLabel: {
+      color: t.text,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    logoutBtnText: {
+      color: '#EF4444',
+      fontWeight: 'bold',
+      fontSize: 14,
+      marginLeft: 4,
+    },
+    // EXISTING ORCHESTRATOR STYLES
+    inputContainer: {
+      flexDirection: 'row',
+      padding: 16,
+      gap: 12,
+      backgroundColor: t.background,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: t.cardBackground,
+      color: t.text,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    button: {
+      backgroundColor: t.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      borderRadius: 8,
+    },
+    buttonText: {
+      color: '#0F172A',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    mainScroll: {
+      flex: 1,
+      backgroundColor: t.background,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 40,
+      gap: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    sectionTitle: {
+      color: t.text,
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 12,
+      borderLeftWidth: 3,
+      borderLeftColor: t.secondary,
+      paddingLeft: 8,
+    },
+    amberCard: {
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      borderWidth: 1,
+      borderColor: t.accent,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 16,
+    },
+    amberCardTitle: {
+      color: t.accent,
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 8,
+    },
+    amberCardText: {
+      color: isDarkMode ? '#FDE68A' : '#92400E',
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    errorCard: {
+      backgroundColor: t.errorBackground,
+      borderWidth: 1,
+      borderColor: '#EF4444',
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 16,
+    },
+    errorCardText: {
+      color: isDarkMode ? '#FCA5A5' : '#B91C1C',
+      fontSize: 15,
+    },
+    consoleContainer: {
+      backgroundColor: t.consoleBackground,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: t.secondary,
+      overflow: 'hidden',
+      marginBottom: 16,
+      height: 250,
+    },
+    consoleHeader: {
+      color: t.secondary,
+      padding: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: t.border,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 12,
+      textAlign: 'center',
+    },
+    consoleScroll: {
+      padding: 12,
+    },
+    traceBlock: {
+      marginBottom: 12,
+    },
+    traceAgent: {
+      color: t.primary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontWeight: 'bold',
+      marginBottom: 2,
+      fontSize: 13,
+    },
+    traceThought: {
+      color: t.consoleText,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      marginBottom: 2,
+      fontSize: 12,
+    },
+    traceAction: {
+      color: t.secondary,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 12,
+    },
+    card: {
+      backgroundColor: t.cardBackground,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    bestMatchCard: {
+      borderColor: t.secondary,
+      borderWidth: 2,
+    },
+    bestMatchTitle: {
+      color: t.secondary,
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 6,
+    },
+    cardHeader: {
+      color: t.text,
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 12,
+    },
+    cardText: {
+      color: t.subText,
+      fontSize: 14,
+      marginBottom: 4,
+    },
+    reasoningBox: {
+      marginTop: 12,
+      padding: 12,
+      backgroundColor: isDarkMode ? 'rgba(6, 182, 212, 0.1)' : '#E0F2FE',
+      borderRadius: 6,
+      borderLeftWidth: 3,
+      borderLeftColor: t.secondary,
+    },
+    reasoningText: {
+      color: isDarkMode ? '#A5F3FC' : '#0369A1',
+      fontSize: 13,
+      fontStyle: 'italic',
+    },
+    alternativesContainer: {
+      marginTop: 8,
+    },
+    alternativesHeader: {
+      color: t.subText,
+      fontSize: 14,
+      marginBottom: 8,
+    },
+    altCard: {
+      width: 200,
+      marginRight: 12,
+      marginBottom: 0,
+    },
+    altTitle: {
+      color: t.text,
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    receiptRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    receiptTotal: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: t.border,
+    },
+    receiptTotalText: {
+      color: t.primary,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    smsCard: {
+      backgroundColor: t.consoleBackground,
+      borderStyle: 'dashed',
+    },
+    smsText: {
+      color: t.text,
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    stepperItem: {
+      flexDirection: 'row',
+      marginBottom: 16,
+    },
+    stepperBullet: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: t.secondary,
+      marginTop: 4,
+      marginRight: 12,
+    },
+    stepperContent: {
+      flex: 1,
+    },
+    stepperTitle: {
+      color: t.text,
+      fontWeight: 'bold',
+      fontSize: 15,
+    },
+    stepperTime: {
+      color: t.subText,
+      fontSize: 12,
+      marginBottom: 4,
+    },
+    // RATING STYLES
+    ratingCard: {
+      backgroundColor: t.cardBackground,
+      borderRadius: 8,
+      padding: 16,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: t.border,
+      alignItems: 'center',
+    },
+    starsRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 8,
+      marginVertical: 16,
+    },
+    starFilled: {
+      fontSize: 40,
+      color: '#FDE047',
+      textShadowColor: 'rgba(253, 224, 71, 0.6)',
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 10,
+    },
+    starUnfilled: {
+      fontSize: 40,
+      color: t.border,
+    },
+    submitReviewBtn: {
+      backgroundColor: t.secondary,
+      paddingVertical: 10,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+    },
+    submitReviewText: {
+      color: '#0F172A',
+      fontWeight: 'bold',
+      fontSize: 14,
+    },
+    receiptHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    receiptLogo: {
+      width: 30,
+      height: 30,
+      marginRight: 8,
+    },
+    themeToggleFloat: {
+      position: 'absolute',
+      top: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 40,
+      right: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      zIndex: 10,
+    }
+  });
+};
+
+const SplashScreen = ({ setCurrentScreen, isDarkMode }) => {
+  const styles = useStyles(isDarkMode);
+  const fillAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(scaleAnim, {
-      toValue: 1.5,
-      duration: 1500,
-      useNativeDriver: true,
+    Animated.timing(fillAnim, {
+      toValue: 100,
+      duration: 2500,
+      useNativeDriver: false,
     }).start();
 
     const timer = setTimeout(() => {
       setCurrentScreen('auth_choice');
-    }, 2000);
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [scaleAnim, setCurrentScreen]);
+  }, [fillAnim, setCurrentScreen]);
 
   return (
     <View style={styles.splashContainer}>
-      <Animated.Text style={[styles.splashTitle, { transform: [{ scale: scaleAnim }] }]}>
-        Hazir
-      </Animated.Text>
+      <Image source={require('./assets/Hazir_logoD.png')} style={styles.splashLogo} resizeMode="contain" />
       <Text style={styles.splashSubtitle}>Fikr chhoro, hum hain na!</Text>
+      <View style={styles.loadingBarContainer}>
+        <Animated.View style={[styles.loadingBarFill, { width: fillAnim.interpolate({
+            inputRange: [0, 100],
+            outputRange: ['0%', '100%']
+        }) }]} />
+      </View>
     </View>
   );
 };
 
-const AuthChoiceScreen = ({ setCurrentScreen }) => {
+const AuthChoiceScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }) => {
+  const styles = useStyles(isDarkMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -54,8 +555,12 @@ const AuthChoiceScreen = ({ setCurrentScreen }) => {
 
   return (
     <View style={styles.centerContainer}>
+      <View style={styles.themeToggleFloat}>
+        <Text style={styles.switchLabel}>{isDarkMode ? 'Dark' : 'Light'}</Text>
+        <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
+      </View>
       <View style={styles.authBrandContainer}>
-        <Text style={styles.splashTitleAuth}>Hazir</Text>
+        <Image source={require('./assets/Hazir_logoH.png')} style={styles.authLogo} resizeMode="contain" />
         <Text style={styles.splashSubtitleAuth}>Fikr chhoro, hum hain na!</Text>
       </View>
       <View style={styles.authCard}>
@@ -101,7 +606,8 @@ const AuthChoiceScreen = ({ setCurrentScreen }) => {
   );
 };
 
-const SignupUserScreen = ({ setCurrentScreen }) => {
+const SignupUserScreen = ({ setCurrentScreen, isDarkMode }) => {
+  const styles = useStyles(isDarkMode);
   return (
     <ScrollView contentContainerStyle={styles.centerScroll}>
       <View style={styles.authCard}>
@@ -125,7 +631,8 @@ const SignupUserScreen = ({ setCurrentScreen }) => {
   );
 };
 
-const SignupProviderScreen = ({ setCurrentScreen }) => {
+const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
+  const styles = useStyles(isDarkMode);
   return (
     <ScrollView contentContainerStyle={styles.centerScroll}>
       <View style={styles.authCard}>
@@ -149,7 +656,8 @@ const SignupProviderScreen = ({ setCurrentScreen }) => {
   );
 };
 
-const InteractiveRating = () => {
+const InteractiveRating = ({ isDarkMode }) => {
+  const styles = useStyles(isDarkMode);
   const [rating, setRating] = useState(0);
 
   return (
@@ -171,7 +679,9 @@ const InteractiveRating = () => {
   );
 };
 
-const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, response, errorMsg, handleExecute }) => {
+const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, response, errorMsg, handleExecute, isDarkMode, setIsDarkMode, devMode, setDevMode }) => {
+  const styles = useStyles(isDarkMode);
+
   const renderGatekeeper = () => {
     if (!response || response.status === 'success' || response.status === 'error') return null;
     return (
@@ -183,7 +693,8 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
   };
 
   const renderAgentTrace = () => {
-    if (!response || !response.agent_trace || response.agent_trace.length === 0) return null;
+    // Only render trace if devMode is enabled
+    if (!devMode || !response || !response.agent_trace || response.agent_trace.length === 0) return null;
     return (
       <View style={styles.consoleContainer}>
         <Text style={styles.consoleHeader}>--- AI Agent Trace ---</Text>
@@ -254,7 +765,10 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
 
         {data.dynamic_receipt && (
           <View style={styles.card}>
-            <Text style={styles.cardHeader}>🧾 Dynamic Receipt</Text>
+            <View style={styles.receiptHeader}>
+              <Image source={require('./assets/Hazir_logoD.png')} style={styles.receiptLogo} resizeMode="contain" />
+              <Text style={[styles.cardHeader, { marginBottom: 0 }]}>Dynamic Receipt</Text>
+            </View>
             <View style={styles.receiptRow}><Text style={styles.cardText}>Base Fee</Text><Text style={styles.cardText}>PKR {data.dynamic_receipt.base_fee}</Text></View>
             <View style={styles.receiptRow}><Text style={styles.cardText}>Distance Fee</Text><Text style={styles.cardText}>PKR {data.dynamic_receipt.distance_fee}</Text></View>
             <View style={styles.receiptRow}><Text style={styles.cardText}>Urgency Surge</Text><Text style={styles.cardText}>PKR {data.dynamic_receipt.urgency_surge}</Text></View>
@@ -295,7 +809,7 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
           </View>
         )}
         
-        <InteractiveRating />
+        <InteractiveRating isDarkMode={isDarkMode} />
       </View>
     );
   };
@@ -321,13 +835,23 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Hazir</Text>
           <Text style={styles.headerSubtitle}>Fikr chhoro, hum hain na!</Text>
         </View>
-        <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')}>
-          <Text style={styles.logoutBtnText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={styles.headerControls}>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Dev</Text>
+            <Switch value={devMode} onValueChange={setDevMode} />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Dark</Text>
+            <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
+          </View>
+          <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')}>
+            <Text style={styles.logoutBtnText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.inputContainer}>
@@ -360,17 +884,25 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
   );
 };
 
-const ProviderDashboardScreen = ({ setCurrentScreen }) => {
+const ProviderDashboardScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }) => {
+  const styles = useStyles(isDarkMode);
+
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Hazir</Text>
           <Text style={styles.headerSubtitle}>Provider Dashboard</Text>
         </View>
-        <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')}>
-          <Text style={styles.logoutBtnText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={styles.headerControls}>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Dark</Text>
+            <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
+          </View>
+          <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')}>
+            <Text style={styles.logoutBtnText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.centerContainer}>
         <Text style={{ fontSize: 50, marginBottom: 20 }}>⚙️</Text>
@@ -385,12 +917,16 @@ const ProviderDashboardScreen = ({ setCurrentScreen }) => {
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [devMode, setDevMode] = useState(false);
   
   // Existing state for user dashboard
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  const styles = useStyles(isDarkMode);
 
   const handleExecute = async () => {
     if (!query.trim()) return;
@@ -421,11 +957,11 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-      {currentScreen === 'splash' && <SplashScreen setCurrentScreen={setCurrentScreen} />}
-      {currentScreen === 'auth_choice' && <AuthChoiceScreen setCurrentScreen={setCurrentScreen} />}
-      {currentScreen === 'signup_user' && <SignupUserScreen setCurrentScreen={setCurrentScreen} />}
-      {currentScreen === 'signup_provider' && <SignupProviderScreen setCurrentScreen={setCurrentScreen} />}
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={isDarkMode ? "#0F172A" : "#F8FAFC"} />
+      {currentScreen === 'splash' && <SplashScreen setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />}
+      {currentScreen === 'auth_choice' && <AuthChoiceScreen setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}
+      {currentScreen === 'signup_user' && <SignupUserScreen setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />}
+      {currentScreen === 'signup_provider' && <SignupProviderScreen setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />}
       {currentScreen === 'user_dashboard' && (
         <UserDashboardScreen 
           setCurrentScreen={setCurrentScreen}
@@ -435,440 +971,15 @@ export default function App() {
           response={response}
           errorMsg={errorMsg}
           handleExecute={handleExecute}
+          isDarkMode={isDarkMode}
+          setIsDarkMode={setIsDarkMode}
+          devMode={devMode}
+          setDevMode={setDevMode}
         />
       )}
-      {currentScreen === 'provider_dashboard' && <ProviderDashboardScreen setCurrentScreen={setCurrentScreen} />}
+      {currentScreen === 'provider_dashboard' && <ProviderDashboardScreen setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#0F172A', // Slate 900
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
-  },
-  // SPLASH
-  splashContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0F172A',
-  },
-  splashTitle: {
-    color: '#06B6D4', // Neon Cyan
-    fontSize: 48,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(6, 182, 212, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-    marginBottom: 20,
-  },
-  splashSubtitle: {
-    color: '#F59E0B', // Amber
-    fontSize: 18,
-    fontStyle: 'italic',
-  },
-  // AUTH HUB
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  authBrandContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  splashTitleAuth: {
-    color: '#06B6D4',
-    fontSize: 36,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(6, 182, 212, 0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
-  },
-  splashSubtitleAuth: {
-    color: '#F59E0B',
-    fontSize: 16,
-    fontStyle: 'italic',
-    marginTop: 8,
-  },
-  validationError: {
-    color: '#EF4444', // Red
-    marginBottom: 12,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  centerScroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  authCard: {
-    width: '100%',
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  authTitle: {
-    color: '#F8FAFC',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  inputAuth: {
-    backgroundColor: '#0F172A',
-    color: '#F8FAFC',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 16,
-  },
-  btnRow: {
-    flexDirection: 'column',
-    gap: 12,
-    marginTop: 8,
-  },
-  primaryBtn: {
-    backgroundColor: '#10B981', // Emerald 500
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    color: '#0F172A',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  secondaryBtn: {
-    backgroundColor: '#06B6D4', // Neon Cyan
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  secondaryBtnText: {
-    color: '#0F172A',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
-  },
-  linkText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-  // SHARED DASHBOARD
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#06B6D4', // Neon Cyan
-    fontSize: 20,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  headerSubtitle: {
-    color: '#F59E0B',
-    fontSize: 12,
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  logoutBtnText: {
-    color: '#EF4444',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  // EXISTING ORCHESTRATOR STYLES
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#1E293B',
-    color: '#F8FAFC',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  button: {
-    backgroundColor: '#10B981', // Emerald 500
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#0F172A',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  mainScroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 16,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    color: '#F8FAFC',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#06B6D4',
-    paddingLeft: 8,
-  },
-  amberCard: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderWidth: 1,
-    borderColor: '#F59E0B', // Amber 500
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  },
-  amberCardTitle: {
-    color: '#F59E0B',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  amberCardText: {
-    color: '#FDE68A',
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  errorCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: '#EF4444',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  },
-  errorCardText: {
-    color: '#FCA5A5',
-    fontSize: 15,
-  },
-  consoleContainer: {
-    backgroundColor: '#020617', // Extremely dark for contrast
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#06B6D4', // Cyan border
-    overflow: 'hidden',
-    marginBottom: 16,
-    height: 250,
-  },
-  consoleHeader: {
-    color: '#06B6D4',
-    padding: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#164E63',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  consoleScroll: {
-    padding: 12,
-  },
-  traceBlock: {
-    marginBottom: 12,
-  },
-  traceAgent: {
-    color: '#10B981', // Emerald for the agent name
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontWeight: 'bold',
-    marginBottom: 2,
-    fontSize: 13,
-  },
-  traceThought: {
-    color: '#94A3B8', // Muted slate
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    marginBottom: 2,
-    fontSize: 12,
-  },
-  traceAction: {
-    color: '#06B6D4', // Cyan for action
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 12,
-  },
-  card: {
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  bestMatchCard: {
-    borderColor: '#06B6D4', // Cyan glow-like border
-    borderWidth: 2,
-  },
-  bestMatchTitle: {
-    color: '#06B6D4',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  cardHeader: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  cardText: {
-    color: '#CBD5E1',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  reasoningBox: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-    borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: '#06B6D4',
-  },
-  reasoningText: {
-    color: '#A5F3FC',
-    fontSize: 13,
-    fontStyle: 'italic',
-  },
-  alternativesContainer: {
-    marginTop: 8,
-  },
-  alternativesHeader: {
-    color: '#94A3B8',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  altCard: {
-    width: 200,
-    marginRight: 12,
-    marginBottom: 0,
-  },
-  altTitle: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  receiptRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  receiptTotal: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#334155',
-  },
-  receiptTotalText: {
-    color: '#10B981',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  smsCard: {
-    backgroundColor: '#0F172A',
-    borderStyle: 'dashed',
-  },
-  smsText: {
-    color: '#E2E8F0',
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  stepperItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  stepperBullet: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#06B6D4',
-    marginTop: 4,
-    marginRight: 12,
-  },
-  stepperContent: {
-    flex: 1,
-  },
-  stepperTitle: {
-    color: '#F8FAFC',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  stepperTime: {
-    color: '#64748B',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  // RATING STYLES
-  ratingCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
-    alignItems: 'center',
-  },
-  starsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginVertical: 16,
-  },
-  starFilled: {
-    fontSize: 40,
-    color: '#FDE047', // Glowing Yellow/Gold
-    textShadowColor: 'rgba(253, 224, 71, 0.6)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
-  starUnfilled: {
-    fontSize: 40,
-    color: '#334155', // Dark outline (slate 700)
-  },
-  submitReviewBtn: {
-    backgroundColor: '#06B6D4', // Neon Cyan
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  submitReviewText: {
-    color: '#0F172A',
-    fontWeight: 'bold',
-    fontSize: 14,
-  }
-});
 
