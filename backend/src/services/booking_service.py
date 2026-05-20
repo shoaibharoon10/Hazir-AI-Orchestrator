@@ -4,6 +4,8 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
+GLOBAL_MOCK_BOOKINGS = {}
+
 class BookingStateError(Exception):
     """Raised when an illegal FSM state transition is attempted."""
     pass
@@ -15,9 +17,7 @@ class DoubleBookingError(Exception):
         self.alternate_slots = alternate_slots or []
 
 class BookingService:
-    # Class-level mock in-memory state lock mapping provider_id to a list of scheduled times
-    # Simulates a database unique constraint or a Redis distributed lock
-    _active_provider_slots = {}
+    # Simple deterministic valid transitions map
     
     # Simple deterministic valid transitions map
     VALID_TRANSITIONS = {
@@ -30,20 +30,20 @@ class BookingService:
 
     def _check_double_booking(self, provider_id: str, scheduled_time: str):
         """T005: Deterministic double-booking prevention matrix (in-memory lock checking)."""
-        if provider_id in self._active_provider_slots:
-            if scheduled_time in self._active_provider_slots[provider_id]:
+        if provider_id in GLOBAL_MOCK_BOOKINGS:
+            if scheduled_time in GLOBAL_MOCK_BOOKINGS[provider_id]:
                 raise DoubleBookingError(
                     f"Provider {provider_id} is already booked or within the 30-minute travel buffer for {scheduled_time}.",
                     alternate_slots=[f"{scheduled_time} (2 hours later)", "Next operational day morning"]
                 )
         else:
-            self._active_provider_slots[provider_id] = set()
+            GLOBAL_MOCK_BOOKINGS[provider_id] = set()
             
     def _lock_booking_slot(self, provider_id: str, scheduled_time: str):
         """Locks the provider for the specific time slot."""
-        if provider_id not in self._active_provider_slots:
-            self._active_provider_slots[provider_id] = set()
-        self._active_provider_slots[provider_id].add(scheduled_time)
+        if provider_id not in GLOBAL_MOCK_BOOKINGS:
+            GLOBAL_MOCK_BOOKINGS[provider_id] = set()
+        GLOBAL_MOCK_BOOKINGS[provider_id].add(scheduled_time)
 
     def transition_state(self, booking_id: str, current_state: str, new_state: str, customer_id: str) -> str:
         """T004: Valid state transition logic (pending -> confirmed -> en_route -> completed)"""

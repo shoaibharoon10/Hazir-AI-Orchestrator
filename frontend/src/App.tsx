@@ -238,7 +238,7 @@ function App() {
                   <div className="w-4 h-4 rounded-full bg-cyan-500 mt-1 shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>
                   <div className="flex flex-col">
                     <span className="text-slate-800 dark:text-slate-200 font-bold text-lg">{step.state}</span>
-                    <span className="text-slate-500 text-xs mb-2 font-medium tracking-wider">{new Date(step.timestamp).toLocaleTimeString()}</span>
+                    <span className="text-slate-500 text-xs mb-2 font-medium tracking-wider">{new Date(step.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                     <span className="text-slate-600 dark:text-slate-400 text-sm">{step.message}</span>
                   </div>
                 </div>
