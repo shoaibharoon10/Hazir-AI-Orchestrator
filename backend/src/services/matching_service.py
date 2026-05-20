@@ -21,14 +21,15 @@ class ProviderMatchingEngine:
         self.providers = self._seed_50_providers()
 
     def _seed_50_providers(self) -> List[Dict[str, Any]]:
-        categories = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair"]
+        categories = ["AC Technician", "Plumber", "Electrician", "Beautician", "Appliance Repair", "Tutor"]
         names_prefix = ["Ali", "Khan", "Ahmed", "Karachi", "Express", "Smart", "Quick", "Super", "Zain", "Raza"]
         category_suffixes = {
             "AC Technician": ["HVAC", "AC Experts", "Cooling", "AC Solutions", "AC Repair"],
             "Plumber": ["Plumbing", "Pipes", "Plumbers", "Leak Fixers", "Sanitary"],
             "Electrician": ["Electric", "Wiring", "Sparks", "Electricians", "Power"],
             "Beautician": ["Salon", "Beauty", "Makeup", "Glamour", "Aesthetics"],
-            "Appliance Repair": ["Appliance Fix", "Repairs", "Home Tech", "Appliances", "Fixers"]
+            "Appliance Repair": ["Appliance Fix", "Repairs", "Home Tech", "Appliances", "Fixers"],
+            "Tutor": ["Math Tutor", "Science Academy", "Tutors", "English Expert", "Academy"]
         }
         locations = list(KARACHI_CENTROIDS.keys())
         tiers = ["gold", "silver", "standard"]
@@ -36,7 +37,7 @@ class ProviderMatchingEngine:
         seeded = []
         random.seed(101) # Deterministic data across tests
         
-        for i in range(1, 51):
+        for i in range(1, 61):
             category = categories[i % len(categories)]
             base_loc = locations[i % len(locations)]
             centroid_lat, centroid_lon = KARACHI_CENTROIDS[base_loc]

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const BACKEND_URL = 'http://192.168.10.6:8000/api/orchestrate/run-all';
+const BACKEND_URL = 'http://192.168.10.7:8000/api/orchestrate/run-all';
 
 const getTheme = (isDarkMode) => ({
   background: isDarkMode ? '#0F172A' : '#F8FAFC',
@@ -1029,6 +1029,8 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
               <View style={styles.chip}><Text style={styles.chipText}>AC Technician</Text></View>
               <View style={styles.chip}><Text style={styles.chipText}>Beautician</Text></View>
               <View style={styles.chip}><Text style={styles.chipText}>Electrician</Text></View>
+              <View style={styles.chip}><Text style={styles.chipText}>Appliance Repair</Text></View>
+              <View style={styles.chip}><Text style={styles.chipText}>Tutor</Text></View>
             </View>
 
             <Text style={styles.emptySectionTitle}>CURRENTLY SERVING IN</Text>

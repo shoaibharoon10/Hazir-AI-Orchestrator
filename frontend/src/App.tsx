@@ -233,7 +233,7 @@ function App() {
             <div className="flex flex-col items-center gap-6">
               <h2 className="text-slate-500 font-bold tracking-[0.2em] text-sm">CURRENTLY PROVIDING SERVICES</h2>
               <div className="flex flex-wrap justify-center gap-4">
-                {['Plumber', 'AC Technician', 'Beautician', 'Electrician'].map(s => (
+                {['Plumber', 'AC Technician', 'Beautician', 'Electrician', 'Appliance Repair', 'Tutor'].map(s => (
                   <div key={s} className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-6 py-3 rounded-full shadow-lg">
                     <span className="text-slate-700 dark:text-slate-300 font-medium">{s}</span>
                   </div>
