@@ -3,6 +3,7 @@ import {
   StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView,
   ActivityIndicator, SafeAreaView, Platform, StatusBar, Animated, Image, Switch
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const BACKEND_URL = 'http://192.168.10.6:8000/api/orchestrate/run-all';
 
@@ -35,8 +36,8 @@ const useStyles = (isDarkMode) => {
       backgroundColor: t.background,
     },
     splashLogo: {
-      width: 250,
-      height: 120,
+      width: '60%',
+      height: 150,
       marginBottom: 20,
     },
     splashSubtitle: {
@@ -74,8 +75,8 @@ const useStyles = (isDarkMode) => {
       marginBottom: 32,
     },
     authLogo: {
-      width: 280,
-      height: 90,
+      width: '80%',
+      height: 160,
     },
     splashSubtitleAuth: {
       color: t.accent,
@@ -179,6 +180,11 @@ const useStyles = (isDarkMode) => {
       fontWeight: 'bold',
       letterSpacing: 1,
     },
+    headerLogo: {
+      height: 28,
+      width: 100,
+      resizeMode: 'contain',
+    },
     headerSubtitle: {
       color: t.accent,
       fontSize: 12,
@@ -200,11 +206,73 @@ const useStyles = (isDarkMode) => {
       fontSize: 12,
       fontWeight: '600',
     },
-    logoutBtnText: {
-      color: '#EF4444',
-      fontWeight: 'bold',
-      fontSize: 14,
+    logoutBtnContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
       marginLeft: 4,
+    },
+    logoutBtnText: {
+      color: t.subText,
+      fontWeight: '600',
+      fontSize: 14,
+    },
+    emptyStateContainer: {
+      alignItems: 'center',
+      marginTop: 20,
+      marginBottom: 40,
+    },
+    emptySectionTitle: {
+      color: t.subText,
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 16,
+      marginTop: 32,
+      letterSpacing: 1.5,
+    },
+    chipContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 12,
+      paddingHorizontal: 16,
+    },
+    chip: {
+      backgroundColor: t.cardBackground,
+      borderWidth: 1,
+      borderColor: t.secondary,
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      shadowColor: t.secondary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDarkMode ? 0.3 : 0.1,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    chipText: {
+      color: t.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    cityChip: {
+      backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
+      borderWidth: 2,
+      borderColor: t.primary,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 32,
+      shadowColor: t.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDarkMode ? 0.3 : 0.1,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    cityChipText: {
+      color: t.primary,
+      fontSize: 18,
+      fontWeight: 'bold',
+      letterSpacing: 1.5,
     },
     // EXISTING ORCHESTRATOR STYLES
     inputContainer: {
@@ -560,7 +628,7 @@ const AuthChoiceScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }) => {
         <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
       </View>
       <View style={styles.authBrandContainer}>
-        <Image source={require('./assets/Hazir_logoH.png')} style={styles.authLogo} resizeMode="contain" />
+        <Image source={require('./assets/Hazir_logoD.png')} style={styles.authLogo} resizeMode="contain" />
         <Text style={styles.splashSubtitleAuth}>Fikr chhoro, hum hain na!</Text>
       </View>
       <View style={styles.authCard}>
@@ -836,7 +904,7 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Hazir</Text>
+          <Image source={require('./assets/Hazir_logoH.png')} style={styles.headerLogo} />
           <Text style={styles.headerSubtitle}>Fikr chhoro, hum hain na!</Text>
         </View>
         <View style={styles.headerControls}>
@@ -848,7 +916,8 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
             <Text style={styles.switchLabel}>Dark</Text>
             <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
           </View>
-          <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')}>
+          <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')} style={styles.logoutBtnContainer}>
+            <Ionicons name="log-out-outline" size={20} color={isDarkMode ? '#94A3B8' : '#64748B'} />
             <Text style={styles.logoutBtnText}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -873,6 +942,23 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
         {renderGatekeeper()}
         {renderAgentTrace()}
 
+        {(!response && !loading) && (
+          <View style={styles.emptyStateContainer}>
+            <Text style={styles.emptySectionTitle}>CURRENTLY PROVIDING SERVICES</Text>
+            <View style={styles.chipContainer}>
+              <View style={styles.chip}><Text style={styles.chipText}>Plumber</Text></View>
+              <View style={styles.chip}><Text style={styles.chipText}>AC Technician</Text></View>
+              <View style={styles.chip}><Text style={styles.chipText}>Beautician</Text></View>
+              <View style={styles.chip}><Text style={styles.chipText}>Electrician</Text></View>
+            </View>
+
+            <Text style={styles.emptySectionTitle}>CURRENTLY SERVING IN</Text>
+            <View style={styles.cityChip}>
+              <Text style={styles.cityChipText}>Karachi</Text>
+            </View>
+          </View>
+        )}
+
         {response && response.status === 'success' && (
           <>
             {renderProviderOptions()}
@@ -891,7 +977,7 @@ const ProviderDashboardScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Hazir</Text>
+          <Image source={require('./assets/Hazir_logoH.png')} style={styles.headerLogo} />
           <Text style={styles.headerSubtitle}>Provider Dashboard</Text>
         </View>
         <View style={styles.headerControls}>
@@ -899,7 +985,8 @@ const ProviderDashboardScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }
             <Text style={styles.switchLabel}>Dark</Text>
             <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
           </View>
-          <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')}>
+          <TouchableOpacity onPress={() => setCurrentScreen('auth_choice')} style={styles.logoutBtnContainer}>
+            <Ionicons name="log-out-outline" size={20} color={isDarkMode ? '#94A3B8' : '#64748B'} />
             <Text style={styles.logoutBtnText}>Logout</Text>
           </TouchableOpacity>
         </View>
