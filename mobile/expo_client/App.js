@@ -44,7 +44,7 @@ const useStyles = (isDarkMode) => {
       color: t.accent,
       fontSize: 18,
       fontStyle: 'italic',
-      marginBottom: 40,
+      marginBottom: 8,
     },
     loadingBarContainer: {
       width: 250,
@@ -188,7 +188,7 @@ const useStyles = (isDarkMode) => {
     },
     // SHARED DASHBOARD
     header: {
-      padding: 16,
+      padding: 10,
       borderBottomWidth: 1,
       borderBottomColor: t.border,
       flexDirection: 'row',
@@ -203,8 +203,8 @@ const useStyles = (isDarkMode) => {
       letterSpacing: 1,
     },
     headerLogo: {
-      height: 56,
-      width: 120,
+      height: 84,
+      width: 90,
       resizeMode: 'contain',
     },
     headerSubtitle: {
@@ -631,9 +631,9 @@ const SplashScreen = ({ setCurrentScreen, isDarkMode }) => {
         </Animated.Text>
       </View>
       <View style={styles.loadingBarContainer}>
-        <Animated.View style={[styles.loadingBarFill, { 
-            width: fillAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
-            backgroundColor: barColor 
+        <Animated.View style={[styles.loadingBarFill, {
+          width: fillAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+          backgroundColor: barColor
         }]} />
       </View>
     </View>
@@ -692,7 +692,7 @@ const AuthChoiceScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }) => {
           onChangeText={setPassword}
           secureTextEntry
         />
-        
+
         <View style={styles.btnRow}>
           <TouchableOpacity style={styles.primaryBtn} onPress={handleLoginUser}>
             <Text style={styles.primaryBtnText}>Login As User</Text>
@@ -701,7 +701,7 @@ const AuthChoiceScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }) => {
             <Text style={styles.secondaryBtnText}>Login as Service Provider</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.linkRow}>
           <TouchableOpacity onPress={() => setCurrentScreen('signup_user')}>
             <Text style={styles.linkText}>Sign up as User</Text>
@@ -922,7 +922,7 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
             ))}
           </View>
         )}
-        
+
         <InteractiveRating isDarkMode={isDarkMode} />
       </View>
     );
@@ -1050,7 +1050,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [devMode, setDevMode] = useState(false);
-  
+
   // Existing state for user dashboard
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1094,7 +1094,7 @@ export default function App() {
       {currentScreen === 'signup_user' && <SignupUserScreen setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />}
       {currentScreen === 'signup_provider' && <SignupProviderScreen setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />}
       {currentScreen === 'user_dashboard' && (
-        <UserDashboardScreen 
+        <UserDashboardScreen
           setCurrentScreen={setCurrentScreen}
           query={query}
           setQuery={setQuery}
