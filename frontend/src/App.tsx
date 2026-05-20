@@ -116,6 +116,16 @@ function App() {
         }),
       });
       const data = await res.json();
+      
+      if (!res.ok) {
+        if (data.data && data.data.alternate_slots) {
+          setErrorMsg(`Double Booking Error! Travel Buffer Conflict. Alternate Slots: ${data.data.alternate_slots.join(', ')}`);
+        } else {
+          setErrorMsg(data.error || "An error occurred during orchestration.");
+        }
+        return;
+      }
+      
       setResponse(data);
     } catch (err) {
       console.error(err);
@@ -217,6 +227,12 @@ function App() {
               <div className="flex justify-between text-slate-600 dark:text-slate-300"><span>Urgency Surge</span><span>PKR {data.dynamic_receipt.urgency_surge}</span></div>
               <div className="flex justify-between text-emerald-600 dark:text-emerald-400"><span>Discount</span><span>-PKR {data.dynamic_receipt.discount}</span></div>
               <div className="flex justify-between text-cyan-600 dark:text-cyan-400 font-bold text-xl mt-4 pt-5 border-t border-slate-200 dark:border-slate-700"><span>Grand Total</span><span>PKR {data.dynamic_receipt.grand_total}</span></div>
+              {data.booking_summary && data.booking_summary.external_sync && (
+                <div className="flex justify-between text-slate-500 text-xs mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <span>External Sync: True</span>
+                  <span className="font-mono">Row ID: {data.booking_summary.spreadsheet_row_id}</span>
+                </div>
+              )}
             </div>
           </div>
         )}

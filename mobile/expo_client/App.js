@@ -1002,6 +1002,12 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
             <View style={styles.receiptRow}><Text style={styles.cardText}>Urgency Surge</Text><Text style={styles.cardText}>PKR {data.dynamic_receipt.urgency_surge}</Text></View>
             <View style={styles.receiptRow}><Text style={styles.cardText}>Discount</Text><Text style={styles.cardText}>-PKR {data.dynamic_receipt.discount}</Text></View>
             <View style={[styles.receiptRow, styles.receiptTotal]}><Text style={styles.receiptTotalText}>Grand Total</Text><Text style={styles.receiptTotalText}>PKR {data.dynamic_receipt.grand_total}</Text></View>
+            {data.booking_summary && data.booking_summary.external_sync && (
+              <View style={[styles.receiptRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(100, 116, 139, 0.2)' }]}>
+                <Text style={[styles.cardText, { fontSize: 11, color: '#64748B' }]}>External Sync: True</Text>
+                <Text style={[styles.cardText, { fontSize: 11, color: '#64748B' }]}>Row ID: {data.booking_summary.spreadsheet_row_id}</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -1020,7 +1026,7 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
                 <View style={styles.stepperBullet} />
                 <View style={styles.stepperContent}>
                   <Text style={styles.stepperTitle}>{step.state}</Text>
-                  <Text style={styles.stepperTime}>{new Date(step.timestamp).toLocaleTimeString()}</Text>
+                  <Text style={styles.stepperTime}>{new Date(step.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</Text>
                   <Text style={styles.cardText}>{step.message}</Text>
                 </View>
               </View>
@@ -1194,6 +1200,16 @@ export default function App() {
       });
 
       const data = await res.json();
+      
+      if (!res.ok) {
+        if (data.data && data.data.alternate_slots) {
+          setErrorMsg(`Double Booking Error! Travel Buffer Conflict. Alternate Slots: ${data.data.alternate_slots.join(', ')}`);
+        } else {
+          setErrorMsg(data.error || "An error occurred during orchestration.");
+        }
+        return;
+      }
+      
       setResponse(data);
     } catch (err) {
       console.error(err);
