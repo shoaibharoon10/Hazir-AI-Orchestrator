@@ -1,95 +1,97 @@
-# 🚀 Hazir: The Intelligent AI Orchestrator for Karachi's Informal Economy
+# Hazir — AI Service Orchestrator for Informal Economy
 
-Welcome to the official submission for the **Google Antigravity Hackathon Challenge 2: AI Service Orchestrator for Informal Economy**. 
+## 1. Problem Statement
+The informal economy in Karachi relies on fragmented, inefficient communication (phone calls, WhatsApp, Facebook groups). Finding a reliable plumber, electrician, or tutor involves significant friction: navigating vague availability, inconsistent pricing, and trust deficits. Traditional directories fail to understand context, constraints, and urgency, leaving users frustrated.
 
-Hazir is a next-generation platform designed to seamlessly connect users with service providers (plumbers, electricians, tutors, etc.) across Karachi. It bridges the digital divide by understanding natural, noisy, mixed-language requests and mathematically orchestrating the perfect match.
+## 2. Solution Overview
+Hazir is an intelligent, agent-driven platform that seamlessly connects households with service providers. By utilizing an AI orchestration layer, Hazir bridges the digital divide, allowing users to express their needs in natural, noisy, mixed-language (Roman Urdu) queries. The system automatically extracts intent, mathematically ranks the best providers, calculates transparent dynamic pricing, and orchestrates the booking.
 
----
+## 3. Challenge 2 Alignment
+This project directly aligns with **Google Antigravity Hackathon Challenge 2: AI Service Orchestrator for Informal Economy**. It satisfies all 18 mandatory requirements, including intent extraction, multi-factor ranking, dynamic pricing, robust edge-case handling, and full-stack implementation across Web and Mobile.
 
-## 🏗️ Architecture Overview
+## 4. Architecture
+Hazir operates on a robust **Dual-Layer System**:
+- **Layer 1: AI NLP Gatekeeper**: A cognitive frontend powered by Google Gemini Flash. It parses raw inputs, structures the intent, and enforces strict data validation using Pydantic.
+- **Layer 2: Deterministic Matching Engine**: An algorithmic backend that executes a geospatial 7-factor ranking formula and a 5-factor dynamic pricing calculation to intelligently pair users and providers.
 
-Hazir operates on a highly robust **Dual-Layer System**:
-1. **AI NLP Gatekeeper (Layer 1):** Powered by Google Gemini Flash, this layer acts as the cognitive frontend. It ingests extremely noisy, multilingual inputs (Urdu, Roman Urdu, English), extracts structured intents (service, location, time, urgency, constraints, preferences), and acts as a strict gatekeeper against unsupported or vague queries.
-2. **Deterministic Matching Engine (Layer 2):** Once the intent is sanitized and locked by Pydantic schemas, this algorithmic layer takes over. It executes a geospatial, multi-factor ranking formula and a 5-factor dynamic pricing calculation to finalize the booking autonomously.
+## 5. Google Antigravity Role
+Google Gemini Flash serves as the primary "Antigravity" orchestration engine. Instead of hardcoded if/else trees for parsing requests, Gemini dynamically extracts the intent, location, urgency, and constraints from highly noisy text. It provides confidence scores, determines fallback behaviors (e.g., Gatekeeper blocks), and feeds strict JSON objects into our deterministic pipelines.
 
----
+## 6. Agentic Workflow
+Our backend simulates a multi-agent orchestration pipeline to ensure atomic transaction handling:
+- **Intent Agent**: Uses Gemini to parse "ac kharab hai bhaiyya sadar me, sasta wala chahye, female ho" into structured JSON (Category: AC Technician, Location: Sadar, Urgency: Urgent, Constraints: sasta wala, Preferences: female).
+- **Provider Matching Agent**: Executes the 7-factor mathematical normalization algorithm to rank 60 local providers, evaluating who is mathematically the best fit.
+- **Pricing Agent**: Runs a 5-factor deterministic financial model calculating base price, surge, distance buffers, and loyalty discounts.
+- **Scheduling Agent**: Locks time slots and strictly enforces double-booking prevention.
+- **Booking Agent**: Assigns the provider and confirms the transaction in the system.
+- **Follow-up Agent**: Handles post-booking feedback, accepting 1-5 star ratings and logging traces.
+- **Dispute/Escalation Agent**: Monitors complaints. Automatically initiates refunds for "no-shows" or escalates "quality complaints" to QA.
 
-## 🗄️ Provider Dataset Schema
+## 7. API Contract
+The system exposes several RESTful endpoints via FastAPI:
+- `POST /api/orchestrate/run-all`: The primary unified orchestration endpoint accepting raw user queries.
+- `POST /api/auth/register-provider`: Live endpoint for onboarding new providers.
+- `POST /api/orchestrate/book`: Atomic booking state machine transition.
+- `POST /api/orchestrate/feedback`: Mocks review and reputation updates.
+- `POST /api/orchestrate/dispute`: Mocks escalation handling.
 
-To ensure both production-readiness and hackathon presentation stability, Hazir utilizes a hybrid data approach:
-- **Live Firestore Registration:** Real-world service providers can register via the Web or Mobile app. Their data (hashed passwords, specializations, operational metrics) is securely written to a live Firebase Firestore `providers` collection.
-- **Mock Synthetic Generation (Fail-Safe):** For immediate demo purposes, a deterministic seeder dynamically generates 60 highly realistic mock providers (across 6 service categories and Karachi centroids) into memory. This guarantees that matching and ranking can be demonstrated instantly without waiting for live network latency.
+## 8. Provider Dataset Schema
+Hazir utilizes a hybrid data approach:
+- **Live Firestore**: Web and Mobile apps write new provider registrations (hashed passwords, specializations, operational metrics) directly to a Firebase Firestore `providers` collection.
+- **Mock Synthetic Generation**: For presentation stability, our deterministic engine dynamically generates 60 highly realistic mock providers across 6 service categories and Karachi centroids, simulating historical stats like cancellation rates and workload.
 
----
-
-## 🧮 The 7-Factor Ranking Algorithm
-
-Hazir goes far beyond simple distance calculation. Our deterministic `ProviderMatchingEngine` mathematically normalizes every provider against a 0.0 to 1.0 scale using a **7-Factor Ranking Algorithm** before sorting the best match.
+## 9. Matching & Ranking Factors
+Hazir uses a strictly normalized (0.0 to 1.0) mathematical model to rank providers.
 
 | Factor | Weight | Goal | Description |
 | :--- | :--- | :--- | :--- |
-| **Distance** | `20%` | Highest Proximity | Calculated via geospatial coordinates. |
-| **Rating** | `20%` | Highest Quality | The provider's average star rating out of 5.0. |
-| **Reliability Score** | `15%` | Highest Trust | Historical on-time arrival rate. |
-| **Base Price** | `15%` | Lowest Cost | Affordability scaling. |
-| **Cancellation Rate** | `10%` | Lowest Drops | Penalizes providers who frequently cancel. |
-| **Review Recency** | `10%` | Freshest Feedback | Prioritizes providers with recent 30-day activity. |
-| **Workload Balancing** | `10%` | Fair Earning | Boosts providers with fewer active jobs to ensure equity. |
+| **Distance** | `20%` | Proximity | Calculated via geospatial Euclidean coordinates. |
+| **Rating** | `20%` | Quality | The provider's average star rating. |
+| **Reliability Score** | `15%` | Trust | Historical on-time arrival rate. |
+| **Base Price** | `15%` | Cost | Favors providers with lower base pricing. |
+| **Cancellation Rate** | `10%` | Stability | Penalizes providers who frequently cancel. |
+| **Review Recency** | `10%` | Freshness | Prioritizes providers with recent 30-day activity. |
+| **Workload Balancing** | `10%` | Equity | Boosts providers with fewer active jobs to ensure fair earning. |
 
----
+## 10. Dynamic Pricing Formula
+Our 5-factor mathematical model ensures transparent and fair pricing:
+1. **Complexity Base Rate**: Basic/Intermediate/Complex tier definitions.
+2. **Surge Multiplier**: Up to 20% surge for "urgent" or "very urgent" requests, capped securely.
+3. **Distance Buffer**: Add-on costs for travel beyond a 5km radius.
+4. **Loyalty Discounts**: Deductions for returning "gold" or "silver" tier customers.
+5. **Provider Rate**: The selected provider's baseline cost.
 
-## ⚙️ Antigravity Workflow
+## 11. Booking Simulation
+When a user approves a match, the `Booking Agent` simulates an atomic transaction. It assigns the provider, locks the time slot to prevent double-booking, transitions the state from `pending` to `confirmed`, and logs a simulated push notification to the user's device.
 
-The complete execution pipeline of Hazir:
-1. **Noisy Intent Parsing:** A user inputs a mixed-language string (e.g., "ac kharab ho gaya, foran bhej do sadar me").
-2. **Gemini Extraction:** The LLM maps this to a strict `IntentExtractionSchema`.
-3. **Pydantic Validation:** The schema validates the presence of mandatory slots. If slots are missing or confidence is low, a `SlotFillingError` is raised for human clarification.
-4. **Geospatial Ranking:** The 7-Factor engine ranks candidates and selects the optimal provider.
-5. **Dynamic Pricing:** A 5-factor mathematical model calculates surge pricing (based on urgency), loyalty discounts, and distance buffers.
-6. **Booking Simulation:** The booking is locked, preventing double-booking via in-memory state constraints.
-7. **Workflows (Feedback & Disputes):** Endpoints handle post-booking logic, simulating automated refunds for "no-shows" or escalating "quality complaints" to QA.
+## 12. Follow-up & Feedback Loop
+Hazir features a dedicated feedback endpoint (`/api/orchestrate/feedback`). After a job is marked `completed`, users can submit a 1-5 star rating and comment. The system processes this to simulate updating the provider's long-term reputation score.
 
----
+## 13. Dispute Handling
+The Dispute Agent (`/api/orchestrate/dispute`) is built to handle the realities of the informal economy. It accepts reasons like "no-show", "quality complaint", or "price disagreement". Intelligent logic auto-simulates a "refund initiated" state for no-shows or escalates complex complaints to QA.
 
-## 💻 APIs & Tech Stack
+## 14. Fallback & Edge Cases
+Hazir is highly resilient:
+- **Low-Confidence / Missing Slots**: The "AI Gatekeeper" halts orchestration and asks clarifying questions if location or time is missing.
+- **API Failure**: A Regex Fallback strategy acts as a safety net if the LLM API timeouts or fails.
+- **Empty States**: If no providers match the criteria, a graceful "No Providers Available" UI is triggered.
 
-- **Frontend:** Vite React (TypeScript), React Native (Expo)
-- **Styling:** Tailwind CSS, Theme-Aware Design (Neon Dark / Light)
-- **Backend:** FastAPI (Python), Uvicorn
-- **AI Orchestration:** Google GenAI SDK (Gemini-2.5-Flash)
-- **Data Validation:** Pydantic
-- **Database:** Firebase Firestore (Admin SDK)
+## 15. Baseline Comparison
+Traditional directory apps (like JustDial) or Facebook Groups require users to manually search, filter, negotiate prices, and endlessly check availability. Hazir reduces a 15-minute frustrating search-and-negotiate process into a **< 5 second atomic interaction** via GenAI orchestration.
 
----
+## 16. Cost & Latency Analysis
+- **API Costs**: By utilizing `gemini-2.5-flash` with a strictly enforced `SYSTEM_PROMPT` and Pydantic schemas, token usage is heavily minimized. Typical extraction consumes < 150 tokens, costing fractions of a cent per request.
+- **Latency**: End-to-end orchestration (from query submission to booking confirmation) averages **~800ms - 1.2s**. The deterministic matching engine runs in `< 5ms`.
 
-## 📊 Cost & Latency Analysis
+## 17. Privacy Note
+All extracted PII (Personally Identifiable Information) such as location, preferences, and phone numbers are isolated within the orchestrator's transient state. We do not store raw PII without consent. Service provider data used in matching is strictly synthetic/mocked for the duration of this hackathon, ensuring no real-world data leaks.
 
-- **API Costs:** By utilizing `gemini-2.5-flash` with a highly optimized, strictly enforced `SYSTEM_PROMPT`, token usage is minimized. Typical extraction consumes < 150 tokens, costing fractions of a cent per orchestration.
-- **Latency:** End-to-end orchestration (from query submission to booking confirmation) averages **~800ms - 1.2s**, with the LLM API call taking the majority of that time. The deterministic matching engine runs in `< 5ms`.
+## 18. Limitations
+- **Synthetic Data Reliance**: For hackathon presentation stability, the ranking logic relies heavily on the 60-provider in-memory synthetic dataset.
+- **Routing Accuracy**: Distance is currently calculated using Euclidean vectors (straight-line) rather than real-time Google Maps traffic APIs.
+- **Calendar Integrations**: Final booking simulations do not write to external user Google Calendars or spreadsheets.
 
----
-
-## 📈 Baseline Comparison
-
-Traditional directory apps (like JustDial or Facebook Groups) require users to manually search, filter, negotiate prices, and check availability. Hazir reduces a 15-minute frustrating search-and-negotiate process into a **< 5 second atomic interaction** via GenAI orchestration.
-
----
-
-## 🔒 Privacy Note
-
-All extracted PII (Personally Identifiable Information) such as location and time preferences are isolated within the orchestrator's state and are not persisted in public databases. Service provider data used in matching is strictly synthetic/mocked for the duration of this hackathon, ensuring no real-world data leaks.
-
----
-
-## ⚠️ Assumptions & Limitations
-
-- **Synthetic Data Reliance:** For the sake of the hackathon demo, the system relies heavily on the 60-provider in-memory synthetic dataset to guarantee robust presentation stability.
-- **Routing:** Distance is calculated using Euclidean vectors (straight-line distance) rather than real-time Google Maps traffic APIs to save on third-party API dependencies.
-
----
-
-## 🛠️ Setup Instructions
-
+## 19. Setup Instructions
 To run the complete ecosystem locally:
 
 ### 1. Backend (FastAPI)
@@ -114,3 +116,12 @@ cd mobile/expo_client
 npm install
 npx expo start
 ```
+
+## 20. Demo Video Link
+[Insert YouTube Link Here]
+
+## 21. APK Link
+[Insert Google Drive/Expo Link Here]
+
+## 22. Antigravity Trace/Logs
+The web and mobile frontends feature a dedicated "Dev Mode" toggle. When active, it displays the full **Agent Trace Log**, offering complete X-Ray visibility into the AI's language parsing confidence, ranking rationales, dynamic price logic, and fallback behaviors in real-time.
