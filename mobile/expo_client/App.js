@@ -36,9 +36,9 @@ const useStyles = (isDarkMode) => {
       backgroundColor: t.background,
     },
     splashLogo: {
-      width: 300,
-      height: 300,
-      marginBottom: 20,
+      width: 450,
+      height: 450,
+      marginBottom: 0,
     },
     splashSubtitle: {
       color: t.accent,
@@ -75,14 +75,14 @@ const useStyles = (isDarkMode) => {
       marginBottom: 32,
     },
     authLogo: {
-      width: 250,
-      height: 250,
+      width: 375,
+      height: 375,
     },
     splashSubtitleAuth: {
       color: t.accent,
       fontSize: 16,
       fontStyle: 'italic',
-      marginTop: 8,
+      marginTop: 0,
     },
     validationError: {
       color: '#EF4444',
@@ -181,8 +181,8 @@ const useStyles = (isDarkMode) => {
       letterSpacing: 1,
     },
     headerLogo: {
-      height: 50,
-      width: 150,
+      height: 75,
+      width: 225,
       resizeMode: 'contain',
     },
     headerSubtitle: {
@@ -553,8 +553,8 @@ const useStyles = (isDarkMode) => {
       marginBottom: 12,
     },
     receiptLogo: {
-      width: 60,
-      height: 60,
+      width: 90,
+      height: 90,
       marginRight: 8,
     },
     themeToggleFloat: {
@@ -903,9 +903,8 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Image source={require('./assets/Hazir_logoH.png')} style={styles.headerLogo} />
-          <Text style={styles.headerSubtitle}>Fikr chhoro, hum hain na!</Text>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <Image source={require('./assets/Hazir_logoD.png')} style={styles.headerLogo} />
         </View>
         <View style={styles.headerControls}>
           <View style={styles.switchRow}>
@@ -976,9 +975,8 @@ const ProviderDashboardScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Image source={require('./assets/Hazir_logoH.png')} style={styles.headerLogo} />
-          <Text style={styles.headerSubtitle}>Provider Dashboard</Text>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <Image source={require('./assets/Hazir_logoD.png')} style={styles.headerLogo} />
         </View>
         <View style={styles.headerControls}>
           <View style={styles.switchRow}>
