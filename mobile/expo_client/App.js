@@ -72,17 +72,24 @@ const useStyles = (isDarkMode) => {
     },
     authBrandContainer: {
       alignItems: 'center',
-      marginBottom: 32,
+      marginBottom: 24,
+      marginTop: -40,
     },
     authLogo: {
-      width: 150,
-      height: 150,
+      width: 210,
+      height: 210,
+    },
+    authWelcome: {
+      color: t.text,
+      fontSize: 32,
+      fontWeight: 'bold',
+      marginTop: -20,
     },
     splashSubtitleAuth: {
       color: t.accent,
       fontSize: 16,
       fontStyle: 'italic',
-      marginTop: 0,
+      marginTop: 4,
     },
     validationError: {
       color: '#EF4444',
@@ -164,6 +171,21 @@ const useStyles = (isDarkMode) => {
       fontSize: 14,
       textDecorationLine: 'underline',
     },
+    termsContainer: {
+      marginTop: 24,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+    },
+    termsText: {
+      color: t.subText,
+      fontSize: 12,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+    termsLink: {
+      color: '#06B6D4',
+      fontWeight: 'bold',
+    },
     // SHARED DASHBOARD
     header: {
       padding: 16,
@@ -181,8 +203,8 @@ const useStyles = (isDarkMode) => {
       letterSpacing: 1,
     },
     headerLogo: {
-      height: 35,
-      width: 105,
+      height: 56,
+      width: 120,
       resizeMode: 'contain',
     },
     headerSubtitle: {
@@ -602,6 +624,7 @@ const SplashScreen = ({ setCurrentScreen, isDarkMode }) => {
   return (
     <View style={styles.splashContainer}>
       <Image source={require('./assets/Hazir_logoD.png')} style={styles.splashLogo} resizeMode="contain" />
+      <Text style={styles.splashSubtitle}>Fikr chhoro, hum hain na!</Text>
       <View style={{ width: 250, marginBottom: 8, flexDirection: 'row', justifyContent: 'flex-end' }}>
         <Animated.Text style={{ color: barColor, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
           {progress}%
@@ -646,6 +669,8 @@ const AuthChoiceScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }) => {
       </View>
       <View style={styles.authBrandContainer}>
         <Image source={require('./assets/Hazir_logoD.png')} style={styles.authLogo} resizeMode="contain" />
+        <Text style={styles.authWelcome}>Welcome</Text>
+        <Text style={styles.splashSubtitleAuth}>Fikr chhoro, hum hain na!</Text>
       </View>
       <View style={styles.authCard}>
         <Text style={styles.authTitle}>Authentication Hub</Text>
@@ -685,6 +710,11 @@ const AuthChoiceScreen = ({ setCurrentScreen, isDarkMode, setIsDarkMode }) => {
             <Text style={styles.linkText}>Sign up as Service Provider</Text>
           </TouchableOpacity>
         </View>
+      </View>
+      <View style={styles.termsContainer}>
+        <Text style={styles.termsText}>
+          By registering, you agree to our <Text style={styles.termsLink}>Terms of Service</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
+        </Text>
       </View>
     </View>
   );
