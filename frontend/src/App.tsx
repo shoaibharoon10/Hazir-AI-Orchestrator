@@ -15,6 +15,21 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  
+  // Provider Signup State
+  const [providerName, setProviderName] = useState('');
+  const [providerEmail, setProviderEmail] = useState('');
+  const [providerPhone, setProviderPhone] = useState('');
+  const [providerPassword, setProviderPassword] = useState('');
+  const [providerAddress, setProviderAddress] = useState('');
+  const [providerCity, setProviderCity] = useState('');
+  const [providerCategory, setProviderCategory] = useState('');
+  const [providerBaseFee, setProviderBaseFee] = useState('');
+  const [providerSpecializations, setProviderSpecializations] = useState('');
+  const [providerWorkStart, setProviderWorkStart] = useState('');
+  const [providerWorkEnd, setProviderWorkEnd] = useState('');
+  const [providerSignupError, setProviderSignupError] = useState('');
+  const [providerSignupLoading, setProviderSignupLoading] = useState(false);
 
   React.useEffect(() => {
     if (isDarkMode) {
@@ -23,6 +38,64 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  const handleProviderSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!providerName.trim() || !providerEmail.trim() || !providerPhone.trim() || !providerPassword.trim() || !providerAddress.trim() || !providerCity.trim() || !providerCategory.trim() || !providerBaseFee.trim() || !providerSpecializations.trim() || !providerWorkStart.trim() || !providerWorkEnd.trim()) {
+      setProviderSignupError('Please fill out all fields.');
+      return;
+    }
+    
+    setProviderSignupError('');
+    setProviderSignupLoading(true);
+
+    try {
+      const specializationsArray = providerSpecializations.split(',').map(s => s.trim()).filter(s => s);
+      
+      const payload = {
+        name: providerName,
+        email: providerEmail,
+        phone: providerPhone,
+        password: providerPassword,
+        address: providerAddress,
+        city: providerCity,
+        category: providerCategory,
+        base_price: parseFloat(providerBaseFee) || 0,
+        specializations: specializationsArray,
+        working_hours: { start: providerWorkStart, end: providerWorkEnd }
+      };
+
+      const res = await fetch('http://127.0.0.1:8000/api/auth/register-provider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || 'Registration failed');
+      }
+
+      // Success
+      setProviderName('');
+      setProviderEmail('');
+      setProviderPhone('');
+      setProviderPassword('');
+      setProviderAddress('');
+      setProviderCity('');
+      setProviderCategory('');
+      setProviderBaseFee('');
+      setProviderSpecializations('');
+      setProviderWorkStart('');
+      setProviderWorkEnd('');
+      setCurrentScreen('provider_dashboard');
+    } catch (err: any) {
+      console.error(err);
+      setProviderSignupError(err.message || "Network error during registration.");
+    } finally {
+      setProviderSignupLoading(false);
+    }
+  };
 
   const handleExecute = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -371,15 +444,31 @@ function App() {
     <div className="flex flex-col items-center gap-8 w-full max-w-md mx-auto my-12">
       <div className="w-full bg-white dark:bg-slate-800/80 dark:backdrop-blur-md p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl flex flex-col gap-4">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-4">Provider Signup</h2>
-        <input type="text" placeholder="Full Name *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <input type="email" placeholder="Email *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <input type="tel" placeholder="Phone *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <input type="password" placeholder="Password *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <input type="text" placeholder="Address *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <input type="text" placeholder="City *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <input type="text" placeholder="Service Category *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <input type="number" placeholder="Base Fee *" className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-cyan-500" />
-        <button onClick={() => setCurrentScreen('dashboard')} className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-4 rounded-xl mt-4 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all">Register Provider</button>
+        
+        {providerSignupError && <p className="text-red-500 font-bold text-center text-sm shadow-sm">{providerSignupError}</p>}
+        
+        <input type="text" placeholder="Full Name *" value={providerName} onChange={(e) => setProviderName(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="email" placeholder="Email *" value={providerEmail} onChange={(e) => setProviderEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="tel" placeholder="Phone *" value={providerPhone} onChange={(e) => setProviderPhone(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="password" placeholder="Password *" value={providerPassword} onChange={(e) => setProviderPassword(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="text" placeholder="Address *" value={providerAddress} onChange={(e) => setProviderAddress(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="text" placeholder="City *" value={providerCity} onChange={(e) => setProviderCity(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="text" placeholder="Service Category *" value={providerCategory} onChange={(e) => setProviderCategory(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <input type="number" placeholder="Base Fee *" value={providerBaseFee} onChange={(e) => setProviderBaseFee(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        
+        <input type="text" placeholder="Specializations (comma separated) *" value={providerSpecializations} onChange={(e) => setProviderSpecializations(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        <div className="flex gap-4 w-full">
+          <input type="text" placeholder="Start Time (e.g. 09:00) *" value={providerWorkStart} onChange={(e) => setProviderWorkStart(e.target.value)} className="flex-1 w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+          <input type="text" placeholder="End Time (e.g. 18:00) *" value={providerWorkEnd} onChange={(e) => setProviderWorkEnd(e.target.value)} className="flex-1 w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors" />
+        </div>
+
+        <button 
+          onClick={handleProviderSignup} 
+          disabled={providerSignupLoading}
+          className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-4 rounded-xl mt-4 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all active:scale-[0.98] disabled:opacity-50"
+        >
+          {providerSignupLoading ? 'Registering...' : 'Register Provider'}
+        </button>
         <button onClick={() => setCurrentScreen('auth')} className="text-slate-500 dark:text-slate-400 text-sm mt-4 hover:text-slate-900 dark:hover:text-white transition-colors">Back to Login</button>
       </div>
     </div>
