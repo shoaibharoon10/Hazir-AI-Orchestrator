@@ -1,0 +1,148 @@
+openapi: 3.0.0
+info:
+  title: Intent Parsing API
+  version: 1.0.0
+  description: API for extracting service intent from natural language user requests.
+
+paths:
+  /api/orchestrate/intent:
+    post:
+      summary: Parse user intent
+      operationId: parseIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_request
+              properties:
+                user_request:
+                  type: string
+                  description: The natural language request from the user, potentially mixed-language.
+                  example: "mujhe ac theek karwana hai Clifton block 9 me aj sham 5 baje tak, bohot zaruri hai"
+      responses:
+        '200':
+          description: Successfully parsed intent or clarification request.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/IntentOutputSuccess'
+                  - $ref: '#/components/schemas/IntentOutputClarification'
+        '400':
+          description: Invalid input format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error or API timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    IntentOutputSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            service_category:
+              type: string
+              enum: ["AC Technician", "Electrician", "Plumber"]
+              example: "AC Technician"
+            location_context:
+              type: string
+              example: "Clifton block 9"
+            time_preference:
+              type: string
+              example: "today 5 PM"
+            urgency_level:
+              type: string
+              enum: ["normal", "urgent", "very urgent"]
+              example: "very urgent"
+            confidence_score:
+              type: number
+              format: float
+              example: 0.95
+          required:
+            - service_category
+            - location_context
+            - time_preference
+            - urgency_level
+            - confidence_score
+        error:
+          type: object
+          nullable: true
+          example: null
+      required:
+        - success
+        - data
+        - error
+
+    IntentOutputClarification:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          type: object
+          nullable: true
+          example: null
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "LOW_CONFIDENCE"
+            message:
+              type: string
+              example: "Are you looking for an electrician or something else?"
+            confidence_score:
+              type: number
+              format: float
+              example: 0.65
+          required:
+            - code
+            - message
+            - confidence_score
+      required:
+        - success
+        - data
+        - error
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          type: object
+          nullable: true
+          example: null
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "INVALID_INPUT"
+            message:
+              type: string
+              example: "The provided user request is malformed or empty."
+          required:
+            - code
+            - message
+      required:
+        - success
+        - data
+        - error

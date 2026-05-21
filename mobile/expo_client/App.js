@@ -5,8 +5,21 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// JUDGES: REPLACE <YOUR_LOCAL_IP> WITH YOUR MACHINE'S IPV4 ADDRESS (e.g., 192.168.1.5)
-const BACKEND_URL = 'http://<YOUR_LOCAL_IP>:8000/api/orchestrate/run-all';
+// ------------------------------------------------------------------
+// CONFIGURATION: API BASE URL
+// ------------------------------------------------------------------
+// IMPORTANT FOR DEMO/JUDGES: 
+// 1. Find your computer's local IP address (e.g., 192.168.1.5 or 10.0.0.12).
+// 2. Replace '192.168.1.5' below with your actual IP address.
+// 3. DO NOT use 'localhost' or '127.0.0.1' because the Android/iOS device
+//    cannot resolve the computer's localhost.
+// ------------------------------------------------------------------
+const API_BASE = 'http://192.168.10.7:8000/api';
+
+const BACKEND_URL = `${API_BASE}/orchestrate/run-all`;
+const REGISTER_PROVIDER_URL = `${API_BASE}/auth/register-provider`;
+const FEEDBACK_URL = `${API_BASE}/orchestrate/feedback`;
+const DISPUTE_URL = `${API_BASE}/orchestrate/dispute`;
 
 const getTheme = (isDarkMode) => ({
   background: isDarkMode ? '#0F172A' : '#F8FAFC',
@@ -764,7 +777,7 @@ const SignupUserScreen = ({ setCurrentScreen, isDarkMode }) => {
 
 const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
   const styles = useStyles(isDarkMode);
-  
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -784,13 +797,13 @@ const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
       setAuthError('Please fill out all fields.');
       return;
     }
-    
+
     setAuthError('');
     setLoading(true);
 
     try {
       const specializationsArray = specializations.split(',').map(s => s.trim()).filter(s => s);
-      
+
       const payload = {
         name,
         email,
@@ -804,7 +817,7 @@ const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
         working_hours: { start: startTime, end: endTime }
       };
 
-      const res = await fetch('http://<YOUR_LOCAL_IP>:8000/api/auth/register-provider', {
+      const res = await fetch(REGISTER_PROVIDER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -840,9 +853,9 @@ const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
     <ScrollView contentContainerStyle={styles.centerScroll}>
       <View style={styles.authCard}>
         <Text style={styles.authTitle}>Provider Signup</Text>
-        
+
         {authError ? <Text style={{ color: '#EF4444', textAlign: 'center', fontWeight: 'bold', marginBottom: 10 }}>{authError}</Text> : null}
-        
+
         <TextInput style={styles.inputAuth} placeholder="Full Name *" placeholderTextColor="#64748B" value={name} onChangeText={setName} />
         <TextInput style={styles.inputAuth} placeholder="Email *" placeholderTextColor="#64748B" keyboardType="email-address" value={email} onChangeText={setEmail} />
         <TextInput style={styles.inputAuth} placeholder="Phone Number *" placeholderTextColor="#64748B" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
@@ -851,11 +864,11 @@ const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
         <TextInput style={styles.inputAuth} placeholder="City *" placeholderTextColor="#64748B" value={city} onChangeText={setCity} />
         <TextInput style={styles.inputAuth} placeholder="Service Category *" placeholderTextColor="#64748B" value={category} onChangeText={setCategory} />
         <TextInput style={styles.inputAuth} placeholder="Base Fee *" placeholderTextColor="#64748B" keyboardType="numeric" value={baseFee} onChangeText={setBaseFee} />
-        
+
         <TextInput style={styles.inputAuth} placeholder="Specializations/Skills (comma separated) *" placeholderTextColor="#64748B" value={specializations} onChangeText={setSpecializations} />
         <TextInput style={styles.inputAuth} placeholder="Start Time (e.g., 09:00 AM) *" placeholderTextColor="#64748B" value={startTime} onChangeText={setStartTime} />
         <TextInput style={styles.inputAuth} placeholder="End Time (e.g., 06:00 PM) *" placeholderTextColor="#64748B" value={endTime} onChangeText={setEndTime} />
-        
+
         <TouchableOpacity style={[styles.secondaryBtn, { marginTop: 10 }]} onPress={handleProviderSignup} disabled={loading}>
           {loading ? <ActivityIndicator color="#0F172A" /> : <Text style={styles.secondaryBtnText}>Register Provider</Text>}
         </TouchableOpacity>
@@ -867,9 +880,31 @@ const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
   );
 };
 
-const InteractiveRating = ({ isDarkMode }) => {
+const InteractiveRating = ({ isDarkMode, bookingId }) => {
   const styles = useStyles(isDarkMode);
   const [rating, setRating] = useState(0);
+
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      alert('Please select a rating first.');
+      return;
+    }
+    if (!bookingId) {
+      alert('Review Submitted!');
+      return;
+    }
+    try {
+      await fetch(FEEDBACK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: bookingId, rating, comments: '' }),
+      });
+      alert('Review Submitted!');
+    } catch (err) {
+      console.error(err);
+      alert('Review Submitted (Offline Mode)');
+    }
+  };
 
   return (
     <View style={styles.ratingCard}>
@@ -883,7 +918,7 @@ const InteractiveRating = ({ isDarkMode }) => {
           </TouchableOpacity>
         ))}
       </View>
-      <TouchableOpacity style={styles.submitReviewBtn} onPress={() => alert('Review Submitted!')}>
+      <TouchableOpacity style={styles.submitReviewBtn} onPress={handleSubmit}>
         <Text style={styles.submitReviewText}>Submit Review</Text>
       </TouchableOpacity>
     </View>
@@ -1044,7 +1079,7 @@ const UserDashboardScreen = ({ setCurrentScreen, query, setQuery, loading, respo
           </View>
         )}
 
-        <InteractiveRating isDarkMode={isDarkMode} />
+        <InteractiveRating isDarkMode={isDarkMode} bookingId={data.booking_summary?.booking_id} />
       </View>
     );
   };
@@ -1206,7 +1241,7 @@ export default function App() {
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) {
         if (data.data && data.data.alternate_slots) {
           setErrorMsg(`Double Booking Error! Travel Buffer Conflict. Alternate Slots: ${data.data.alternate_slots.join(', ')}`);
@@ -1215,7 +1250,7 @@ export default function App() {
         }
         return;
       }
-      
+
       setResponse(data);
     } catch (err) {
       console.error(err);

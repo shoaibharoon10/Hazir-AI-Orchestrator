@@ -17,3 +17,11 @@ class BookingSummaryOutput(BaseModel):
     timestamp: str
     external_sync: bool = False
     spreadsheet_row_id: str | None = None
+    duplicate_check_performed: bool = False
+    booking_lock_key: str | None = None
+    provider_slot_key: str | None = None
+    duplicate_detected: bool = False
+    slot_available: bool = True
+    external_sync_executed: bool = False
+    final_booking_decision: str | None = None
+    existing_booking_returned: bool = False

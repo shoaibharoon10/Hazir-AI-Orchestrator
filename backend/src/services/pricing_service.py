@@ -59,19 +59,24 @@ class PricingService:
 
     def calculate_net_total(self, request: PricingRequestInput) -> PriceBreakdownOutput:
         """T008: Composite logic enforcing 2-decimal rounding strictness."""
-        base_price = self.evaluate_base_price(request.complexity_tier)
-        surge_cost = self.calculate_surge(base_price, request.urgency_flag)
-        distance_buffer = self.calculate_distance_buffer(request.distance_km)
-        discount = self.calculate_discount(request.loyalty_tier)
+        complexity_base_rate = self.evaluate_base_price(request.complexity_tier)
+        provider_base_rate = request.provider_base_rate
         
-        raw_net = (base_price + surge_cost + distance_buffer) - discount
+        combined_base = complexity_base_rate + provider_base_rate
+        
+        urgency_surge = self.calculate_surge(combined_base, request.urgency_flag)
+        distance_charge = self.calculate_distance_buffer(request.distance_km)
+        loyalty_discount = self.calculate_discount(request.loyalty_tier)
+        
+        raw_net = (combined_base + urgency_surge + distance_charge) - loyalty_discount
         # Ensure net_total doesn't drop below 0 if discounts are overly generous
-        net_total = max(0.00, raw_net)
+        final_total = max(0.00, raw_net)
         
         return PriceBreakdownOutput(
-            base_price=round(base_price, 2),
-            surge_cost=round(surge_cost, 2),
-            distance_buffer=round(distance_buffer, 2),
-            discount=round(discount, 2),
-            net_total=round(net_total, 2)
+            complexity_base_rate=round(complexity_base_rate, 2),
+            provider_base_rate=round(provider_base_rate, 2),
+            urgency_surge=round(urgency_surge, 2),
+            distance_charge=round(distance_charge, 2),
+            loyalty_discount=round(loyalty_discount, 2),
+            final_total=round(final_total, 2)
         )

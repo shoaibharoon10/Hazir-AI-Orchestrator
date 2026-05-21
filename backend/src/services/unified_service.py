@@ -78,14 +78,24 @@ class UnifiedOrchestratorService:
         })
         logger.info(f"[PlannerAgent] Query: '{request.query}'")
 
+        is_fallback = False
         try:
             intent_result = self.intent_parser.parse_raw_query(request.query)
             if not intent_result.success or not intent_result.data:
                 logger.warning("[PlannerAgent] Gemini failed — triggering regex fallback.")
                 intent_result = execute_regex_fallback(request.query)
+                is_fallback = True
         except Exception as exc:
             logger.warning(f"[PlannerAgent] Gemini exception: {exc} — triggering regex fallback.")
             intent_result = execute_regex_fallback(request.query)
+            is_fallback = True
+            
+        if intent_result.success and intent_result.data:
+            agent_trace.append({
+                "agent": "PlannerAgent",
+                "thought": f"Gemini NLP parsing complete. Confidence score: {intent_result.data.confidence_score}. Missing slot / fallback status: {'Used Fallback' if is_fallback else 'Success'}.",
+                "action": "Evaluated NLP Extraction"
+            })
 
         if not intent_result.success or not intent_result.data:
             agent_trace.append({
@@ -209,8 +219,8 @@ class UnifiedOrchestratorService:
         agent_trace.append({
             "agent": "MatchingAgent",
             "thought": (
-                f"Computing Euclidean distance vectors for all '{intent_data.service_category}' "
-                f"providers near '{extracted_location}'. Ranking by proximity + tier weight."
+                f"Computing 7-factor ranking calculation (distance, rating, reliability, price, cancel_rate, recency, workload) "
+                f"for all '{intent_data.service_category}' providers near '{extracted_location}'."
             ),
             "action": "Invoked Geospatial Matching Engine",
             "tool_used": "ProviderMatchingEngine"
@@ -262,43 +272,47 @@ class UnifiedOrchestratorService:
         elif "beautician" in cat_lower or "appliance" in cat_lower:
             complexity_tier = "basic"
 
-        agent_trace.append({
-            "agent": "PricingAgent",
-            "thought": (
-                f"Computing dynamic pricing for '{complexity_tier}' complexity, "
-                f"{distance_km}km distance, urgency={urgency_bool}."
-            ),
-            "action": "Calculated Net Total",
-            "tool_used": "PricingService"
-        })
-
         pricing_req = PricingRequestInput(
             job_category=intent_data.service_category,
             complexity_tier=complexity_tier,
             distance_km=distance_km,
             urgency_flag=urgency_bool,
-            loyalty_tier=None
+            loyalty_tier=None,
+            provider_base_rate=best_match.get("base_price", 0.0)
         )
         price_breakdown = self.pricing_service.calculate_net_total(pricing_req)
+        
+        agent_trace.append({
+            "agent": "PricingAgent",
+            "thought": (
+                f"Computed 5-factor dynamic pricing breakdown. "
+                f"Complexity Base: {price_breakdown.complexity_base_rate}, Provider Rate: {price_breakdown.provider_base_rate}, "
+                f"Surge: {price_breakdown.urgency_surge}, Distance Charge: {price_breakdown.distance_charge}, "
+                f"Loyalty: {price_breakdown.loyalty_discount}. provider_base_rate_used: true."
+            ),
+            "action": "Calculated 5-Factor Net Total",
+            "tool_used": "PricingService"
+        })
+        
         output.price_breakdown = price_breakdown
         output.dynamic_receipt = {
-            "base_fee": price_breakdown.base_price,
-            "distance_fee": price_breakdown.distance_buffer,
-            "urgency_surge": price_breakdown.surge_cost,
-            "discount": price_breakdown.discount,
-            "grand_total": price_breakdown.net_total
+            "base_fee": round(price_breakdown.complexity_base_rate + price_breakdown.provider_base_rate, 2),
+            "distance_fee": price_breakdown.distance_charge,
+            "urgency_surge": price_breakdown.urgency_surge,
+            "discount": price_breakdown.loyalty_discount,
+            "grand_total": price_breakdown.final_total
         }
 
         # ===================================================================
         # Agent 4 — ExecutionAgent + DisputeAgent: FSM Booking + Collision Handling
         # ===================================================================
         agent_trace.append({
-            "agent": "ExecutionAgent",
+            "agent": "BookingAgent",
             "thought": (
-                f"Attempting slot lock for best_match '{best_match['name']}' "
+                f"Executing duplicate booking check and provider slot lock for '{best_match['name']}' "
                 f"at time '{extracted_time}'."
             ),
-            "action": "Initiating Booking FSM",
+            "action": "Initiating Booking Checks",
             "tool_used": "BookingService"
         })
 
@@ -316,7 +330,7 @@ class UnifiedOrchestratorService:
                     provider_id=candidate_id,
                     job_category=intent_data.service_category,
                     scheduled_time=extracted_time,
-                    dynamic_price=price_breakdown.net_total,
+                    dynamic_price=price_breakdown.final_total,
                     customer_id=request.customer_id,
                     location_context=extracted_location
                 )
@@ -325,18 +339,22 @@ class UnifiedOrchestratorService:
 
                 if idx == 0:
                     agent_trace.append({
-                        "agent": "ExecutionAgent",
-                        "thought": f"Slot locked for best_match '{candidate['name']}'.",
-                        "action": "Booking Confirmed"
+                        "agent": "BookingAgent",
+                        "thought": (
+                            f"Duplicate detected: {booking_summary_dict['duplicate_detected']}. "
+                            f"Slot lock key: {booking_summary_dict['provider_slot_key']}. "
+                            f"External sync decision: {booking_summary_dict['external_sync_executed']}."
+                        ),
+                        "action": f"Final Outcome: {booking_summary_dict['final_booking_decision']}"
                     })
                 else:
                     agent_trace.append({
                         "agent": "DisputeAgent",
                         "thought": (
                             f"Alternative #{idx} '{candidate['name']}' successfully booked "
-                            f"after {idx} collision(s)."
+                            f"after {idx} collision(s). External sync decision: {booking_summary_dict['external_sync_executed']}."
                         ),
-                        "action": "Dispute Resolved — Alternative Booked"
+                        "action": f"Final Outcome: {booking_summary_dict['final_booking_decision']}"
                     })
                 break  # booking succeeded
 
@@ -396,7 +414,7 @@ class UnifiedOrchestratorService:
             f"Booking ID: {booking_summary_dict['booking_id']}. "
             f"Scheduled: {intent_data.time_preference}. "
             f"Location: {extracted_location}. "
-            f"Total Amount: PKR {price_breakdown.net_total:.2f}. "
+            f"Total Amount: PKR {price_breakdown.final_total:.2f}. "
             f"Shukriya! — AI Service Orchestrator"
         )
 

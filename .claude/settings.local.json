@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(grep -E 'refs/heads/[0-9]+-data-mock-schema$')",
+      "Bash(grep -E '^[* ]*[0-9]+-data-mock-schema$')",
+      "Bash(.spec/)",
+      "Bash(isSynthetic: true *)",
+      "Bash(runSeed.js)",
+      "Bash(providers)",
+      "Bash(providerSchedules)",
+      "Bash(git checkout *)",
+      "Bash(git ls-remote *)",
+      "Bash(reviews)",
+      "Bash(bookings)",
+      "Bash(agentTraces)",
+      "Bash(powershell -Command \".specify/scripts/powershell/create-new-feature.ps1 -Json 'Create a highly detailed Technical Specification for the \"Data Layer and Mock Provider Dataset Schema\" inside the `.spec/` directory, following this exact structural template:## Part 1: Reference Architecture Analysis- Patterns for high-performance NoSQL indexing in Firebase Firestore for geolocation and multi-factor filtering.- What traditional booking systems do poorly \\(e.g., rigid relational joins, single-factor distance sorting\\).- Strategic design decisions for structuring synthetic datasets with `isSynthetic: true`.## Part 2: Current Architecture Analysis- Constraints imposed by Constitution v3.1 regarding Type A \\(Read-Only Mock Data\\) and Type B \\(Runtime Organic Data\\).- Fields explicitly required to fulfill the Immutable 8-Factor Ranking Formula \\(rating, cancellationRate, reliabilityScore, distance vectors, specializationMatch, basePrice, reviewRecency, availability\\).- Affected files: backend schemas, seeding scripts, and data models.## Part 3: Implementation Plan- Phased approach for seeding data \\(`runSeed.js`\\) and validating data formats before backend orchestration starts.- Risk mitigation for straight-line distance fallback if Google Maps Distance Matrix API fails or is throttled.## Part 4: Implementation Checklist- Strict Pydantic and TypeScript type definitions for `providers`, `providerSchedules`, `reviews`, `bookings`, and `agentTraces` collections.- Setup script definitions with hardcoded synthetic provider examples for AC technicians, electricians, and plumbers.## Constraints- Explicit boundaries: Frontend must NEVER write directly to Type A mock collections. - Schema parameters must reject zero or negative values for validation safety.## Success Criteria- Fully validated JSON format matching the 8-factor mathematical model requirements with zero implicit types.- Acceptance tests simulating data fetching for Acceptance Test 1 \\(AC Technician scenario\\).'-Number 2 -ShortName \"data-mock-schema\"\")",
+      "Bash(grep -E 'refs/heads/[0-9]+-intent-parsing-spec$')",
+      "Bash(grep -E '^[* ]*[0-9]+-intent-parsing-spec$')",
+      "Bash(/api/orchestrate/intent)",
+      "Bash(IntentExtractionSchema)",
+      "Bash(.specify/scripts/powershell/create-new-feature.ps1 -Json \"Create a comprehensive Technical Specification for the \\\\\"Intent Parsing Agent\\\\\" inside the `.spec/` directory, following the exact structural template from the book.## Part 1: Reference Architecture Analysis- Conversational NLP token extraction and intent parsing architectures using LLMs \\(specifically Google Gemini API\\).- Handling of mixed-language text data \\(code-switching, Roman Urdu, slang, phonetics\\) and common pitfalls in traditional rule-based regex parsing.- Best practices for dynamic confidence scoring models in Agentic AI.## Part 2: Current Architecture Analysis- Constraints imposed by Project Constitution v3.1 regarding the Low-Confidence Gate \\(Hard Rule: if confidence < 0.70, stop execution and ask exactly ONE clarifying question\\).- Extraction targets required by Challenge 2: service category \\(AC Technician, Electrician, Plumber\\), location context, time preference, and urgency level.- Affected files: backend API routes, NLP helper modules, and intent schemas.\\\\n\\\\n## Part 3: Implementation Plan\\\\n- Phased approach for creating the translation/parsing prompt matrices and building the FastAPI router endpoint `/api/orchestrate/intent`.\\\\n- Fail-safe strategy for fallback handling when handling highly corrupted inputs or Groq/Gemini API timeouts.\\\\n\\\\n## Part 4: Implementation Checklist\\\\n- Pydantic models for the structured Intent Output \\(`IntentExtractionSchema`\\).\\\\n- System prompt design block specialized for Roman Urdu context routing.\\\\n- Integration tests simulating Acceptance Test 1 and Acceptance Test 2 scenarios.\\\\n\\\\n## Constraints\\\\n- Explicit boundaries: The Intent Agent must NEVER guess or hallucinate components if confidence is below 0.70.\\\\n- No business sorting or ranking logic may exist inside this parsing node.\\\\n\\\\n## Success Criteria\\\\n- Deterministic extraction outputs mapping directly to Type A dataset categories with structured error shape responses.\\\\n- Validation latency profile check under 1.5 seconds per parse sequence.\" -Number 1 -ShortName \"intent-parsing-spec\")",
+      "Bash(pwsh *)",
+      "Bash(.specify/scripts/bash/create-phr.sh *)",
+      "Bash(powershell.exe *)",
+      "Bash(grep -E 'refs/heads/[0-9]+-provider-matching-ranking$')",
+      "Bash(grep -E '^[* ]*[0-9]+-provider-matching-ranking$')",
+      "Bash(backend/src/api/orchestrate/matching.py)",
+      "Bash(/api/orchestrate/match)"
+    ]
+  }
+}

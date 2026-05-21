@@ -58,11 +58,19 @@ class BookingService:
     def _check_double_booking(self, provider_slot_key: str, scheduled_time: str, provider_id: str):
         """T005: Deterministic double-booking prevention matrix."""
         if provider_slot_key in GLOBAL_PROVIDER_LOCKS:
+            # We can suggest alternating slots
+            # For simplicity, extract the hour from "17:00" and add 2
+            try:
+                hour = int(scheduled_time.split(":")[0])
+                alt_hour = (hour + 2) % 24
+                alt_time = f"{alt_hour:02d}:00"
+            except:
+                alt_time = "2 hours later"
+
             raise DoubleBookingError(
                 f"Provider {provider_id} is already booked or within the 30-minute travel buffer for {scheduled_time}.",
-                alternate_slots=[f"{scheduled_time} (2 hours later)", "Next operational day morning"]
+                alternate_slots=[f"{alt_time}", "Next operational day morning"]
             )
-            
     def _lock_booking_slot(self, provider_slot_key: str, booking_id: str):
         """Locks the provider for the specific time slot."""
         GLOBAL_PROVIDER_LOCKS[provider_slot_key] = booking_id
@@ -107,9 +115,21 @@ class BookingService:
         # LOGIC LAYER 1: Idempotency (Duplicate Request)
         if duplicate_key in GLOBAL_CONFIRMED_BOOKINGS:
             existing_booking = GLOBAL_CONFIRMED_BOOKINGS[duplicate_key]
-            existing_booking["current_status"] = "duplicate_detected"
+            
+            # Update trace fields without overriding the existing external sync ID
+            result_booking = existing_booking.copy()
+            result_booking["current_status"] = "duplicate_detected"
+            result_booking["duplicate_check_performed"] = True
+            result_booking["booking_lock_key"] = duplicate_key
+            result_booking["provider_slot_key"] = provider_slot_key
+            result_booking["duplicate_detected"] = True
+            result_booking["slot_available"] = False  # Taken by themselves
+            result_booking["external_sync_executed"] = False
+            result_booking["final_booking_decision"] = "rejected_duplicate"
+            result_booking["existing_booking_returned"] = True
+            
             logger.info(f"Idempotency Triggered: Returning existing booking for key {duplicate_key}")
-            return existing_booking
+            return result_booking
         
         # LOGIC LAYER 2: Double Booking Lock
         self._check_double_booking(provider_slot_key, scheduled_time, provider_id)
@@ -122,6 +142,7 @@ class BookingService:
         
         # T007: External Webhook Sync Simulation
         # Here we simulate an async post to a webhook or Google Calendar API
+        # THIS ONLY RUNS IF WE PASS THE DUPLICATE AND SLOT CHECKS
         logger.info(f"SIMULATION WORKER: Synchronizing booking {booking_id} with external Google Calendar/Sheet webhook (https://webhook.site/mock).")
         external_sync = True
         spreadsheet_row_id = f"ROW-{uuid.uuid4().hex[:6].upper()}"
@@ -133,10 +154,18 @@ class BookingService:
             "net_price": request_input.dynamic_price,
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "external_sync": external_sync,
-            "spreadsheet_row_id": spreadsheet_row_id
+            "spreadsheet_row_id": spreadsheet_row_id,
+            "duplicate_check_performed": True,
+            "booking_lock_key": duplicate_key,
+            "provider_slot_key": provider_slot_key,
+            "duplicate_detected": False,
+            "slot_available": True,
+            "external_sync_executed": True,
+            "final_booking_decision": "approved_new_booking",
+            "existing_booking_returned": False
         }
         
-        # Save state
+        # Save state for future idempotency checks
         GLOBAL_CONFIRMED_BOOKINGS[duplicate_key] = new_booking.copy()
         self._lock_booking_slot(provider_slot_key, booking_id)
         

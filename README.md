@@ -1,48 +1,44 @@
 # Hazir — AI Service Orchestrator for Informal Economy
 
-## 1. Problem Statement
+## 1. Project Overview
 The informal economy in Karachi relies on fragmented, inefficient communication (phone calls, WhatsApp, Facebook groups). Finding a reliable plumber, electrician, or tutor involves significant friction: navigating vague availability, inconsistent pricing, and trust deficits. Traditional directories fail to understand context, constraints, and urgency, leaving users frustrated.
 
-## 2. Solution Overview
 Hazir is an intelligent, agent-driven platform that seamlessly connects households with service providers. By utilizing an AI orchestration layer, Hazir bridges the digital divide, allowing users to express their needs in natural, noisy, mixed-language (Roman Urdu) queries. The system automatically extracts intent, mathematically ranks the best providers, calculates transparent dynamic pricing, and orchestrates the booking.
 
-## 3. Challenge 2 Alignment
+## 2. Challenge 2 Alignment
 This project directly aligns with **Google Antigravity Hackathon Challenge 2: AI Service Orchestrator for Informal Economy**. It satisfies all 18 mandatory requirements, including intent extraction, multi-factor ranking, dynamic pricing, robust edge-case handling, and full-stack implementation across Web and Mobile.
 
-## 4. Architecture
-Hazir operates on a robust **Dual-Layer System**:
-- **Layer 1: AI NLP Gatekeeper**: A cognitive frontend powered by Google Gemini Flash. It parses raw inputs, structures the intent, and enforces strict data validation using Pydantic.
-- **Layer 2: Deterministic Matching Engine**: An algorithmic backend that executes a geospatial 7-factor ranking formula and a 5-factor dynamic pricing calculation to intelligently pair users and providers.
+## 3. Google Antigravity Role
+Google Antigravity was used as the primary development and agentic workflow environment for planning, implementation, debugging, trace generation, and final audit. Gemini Flash powers multilingual NLP intent extraction, while deterministic backend agents handle matching, pricing, booking, follow-up, and dispute workflows.
 
-## 5. Google Antigravity Role
-Google Gemini Flash serves as the primary "Antigravity" orchestration engine. Instead of hardcoded if/else trees for parsing requests, Gemini dynamically extracts the intent, location, urgency, and constraints from highly noisy text. It provides confidence scores, determines fallback behaviors (e.g., Gatekeeper blocks), and feeds strict JSON objects into our deterministic pipelines.
+## 4. LLM vs Deterministic Backend Role
+We employ a **Dual-Layer System**:
+- **Layer 1: AI NLP Gatekeeper (LLM)**: A cognitive frontend powered by Google Gemini. It parses raw Roman Urdu/English inputs, structures the intent, handles urgency and constraints, and enforces strict data validation using Pydantic. It provides confidence scores and handles slot filling logic.
+- **Layer 2: Deterministic Backend**: Algorithmic backend agents that execute geospatial 7-factor ranking formulas, 5-factor dynamic pricing calculations, double-booking prevention, and state machine transitions. This ensures mathematical accuracy and system stability that an LLM alone cannot guarantee.
 
-## 6. Agentic Workflow
+## 5. Agentic Workflow
 Our backend simulates a multi-agent orchestration pipeline to ensure atomic transaction handling:
-- **Intent Agent**: Uses Gemini to parse "ac kharab hai bhaiyya sadar me, sasta wala chahye, female ho" into structured JSON (Category: AC Technician, Location: Sadar, Urgency: Urgent, Constraints: sasta wala, Preferences: female).
-- **Provider Matching Agent**: Executes the 7-factor mathematical normalization algorithm to rank 60 local providers, evaluating who is mathematically the best fit.
-- **Pricing Agent**: Runs a 5-factor deterministic financial model calculating base price, surge, distance buffers, and loyalty discounts.
-- **Scheduling Agent**: Locks time slots and strictly enforces double-booking prevention.
-- **Booking Agent**: Assigns the provider and confirms the transaction in the system.
-- **Follow-up Agent**: Handles post-booking feedback, accepting 1-5 star ratings and logging traces.
-- **Dispute/Escalation Agent**: Monitors complaints. Automatically initiates refunds for "no-shows" or escalates "quality complaints" to QA.
+1. **PlannerAgent (Intent Agent)**: Uses Gemini to parse queries (e.g., "ac kharab hai bhaiyya sadar me, urgent") into structured JSON and validates mandatory slots.
+2. **MatchingAgent**: Executes the 7-factor mathematical normalization algorithm to rank 60 local simulated providers.
+3. **PricingAgent**: Runs a 5-factor deterministic financial model calculating base price, surge, distance buffers, and loyalty discounts.
+4. **BookingAgent**: Locks time slots, prevents double bookings, and handles external sync simulations.
+5. **FollowUpAgent**: Handles simulated post-booking feedback, accepting 1-5 star ratings and logging traces.
+6. **DisputeAgent**: Monitors simulated complaints and auto-initiates refunds or QA escalations based on the dispute reason.
 
-## 7. API Contract
+## 6. API Endpoints
 The system exposes several RESTful endpoints via FastAPI:
 - `POST /api/orchestrate/run-all`: The primary unified orchestration endpoint accepting raw user queries.
 - `POST /api/auth/register-provider`: Live endpoint for onboarding new providers.
-- `POST /api/orchestrate/book`: Atomic booking state machine transition.
-- `POST /api/orchestrate/feedback`: Mocks review and reputation updates.
-- `POST /api/orchestrate/dispute`: Mocks escalation handling.
+- `POST /api/orchestrate/feedback`: Accepts `booking_id`, `provider_id`, `rating` (1.0-5.0), and `comment`. Mocks reputation updates and returns workflow traces.
+- `POST /api/orchestrate/dispute`: Accepts `booking_id`, `provider_id`, `reason` ('no-show', 'quality complaint', 'price disagreement'), and `customer_message`. Simulates dispute workflows (e.g., refunds for no-shows, QA escalation for quality complaints).
 
-## 8. Provider Dataset Schema
+## 7. Provider Dataset Schema
 Hazir utilizes a hybrid data approach:
-- **Live Firestore**: Web and Mobile apps write new provider registrations (hashed passwords, specializations, operational metrics) directly to a Firebase Firestore `providers` collection.
+- **Live Firestore (Simulated locally via API)**: Web and Mobile apps write new provider registrations (hashed passwords, specializations, operational metrics). *(Note: Currently stored in memory/mocked for demo purposes).*
 - **Mock Synthetic Generation**: For presentation stability, our deterministic engine dynamically generates 60 highly realistic mock providers across 6 service categories and Karachi centroids, simulating historical stats like cancellation rates and workload.
 
-## 9. Matching & Ranking Factors
+## 8. 7-Factor Provider Ranking
 Hazir uses a strictly normalized (0.0 to 1.0) mathematical model to rank providers.
-
 | Factor | Weight | Goal | Description |
 | :--- | :--- | :--- | :--- |
 | **Distance** | `20%` | Proximity | Calculated via geospatial Euclidean coordinates. |
@@ -53,45 +49,64 @@ Hazir uses a strictly normalized (0.0 to 1.0) mathematical model to rank provide
 | **Review Recency** | `10%` | Freshness | Prioritizes providers with recent 30-day activity. |
 | **Workload Balancing** | `10%` | Equity | Boosts providers with fewer active jobs to ensure fair earning. |
 
-## 10. Dynamic Pricing Formula
-Our 5-factor mathematical model ensures transparent and fair pricing:
-1. **Complexity Base Rate**: Basic/Intermediate/Complex tier definitions.
+## 9. 5-Factor Dynamic Pricing
+Our mathematical model ensures transparent and fair pricing:
+1. **Complexity Base Rate**: Basic/Intermediate/Complex tier definitions dynamically map to base pricing.
 2. **Surge Multiplier**: Up to 20% surge for "urgent" or "very urgent" requests, capped securely.
 3. **Distance Buffer**: Add-on costs for travel beyond a 5km radius.
 4. **Loyalty Discounts**: Deductions for returning "gold" or "silver" tier customers.
-5. **Provider Rate**: The selected provider's baseline cost.
+5. **Provider Rate**: The selected provider's baseline cost dynamically fetched and incorporated into the surge calculus.
 
-## 11. Booking Simulation
-When a user approves a match, the `Booking Agent` simulates an atomic transaction. It assigns the provider, locks the time slot to prevent double-booking, transitions the state from `pending` to `confirmed`, and logs a simulated push notification to the user's device.
+## 10. Booking Simulation
+When a user approves a match, the `BookingAgent` simulates an atomic transaction. It assigns the provider, transitions the state from `pending` to `confirmed`, and logs a simulated push notification to the user's device.
 
-## 12. Follow-up & Feedback Loop
-Hazir features a dedicated feedback endpoint (`/api/orchestrate/feedback`). After a job is marked `completed`, users can submit a 1-5 star rating and comment. The system processes this to simulate updating the provider's long-term reputation score.
+## 11. Booking Safety Logic
+- **Duplicate Booking Prevention**: Uses MD5 hashing (Customer ID + Service + Location + Normalized Time) to prevent duplicate external row creation for accidental resubmissions.
+- **Provider Slot Locking**: Ensures a provider cannot be booked by two different customers for the same time slot, automatically routing to alternative providers if a collision occurs.
+- **Time Normalization**: Standardizes inputs (e.g., "5 pm", "5:00 pm", "17:00" all normalize identically) to prevent bypass of slot checks.
+- **External Sync Safety**: The simulation of an external Google Sheets/Calendar sync is strictly gated and only executed *after* duplicate and slot-lock checks pass.
 
-## 13. Dispute Handling
-The Dispute Agent (`/api/orchestrate/dispute`) is built to handle the realities of the informal economy. It accepts reasons like "no-show", "quality complaint", or "price disagreement". Intelligent logic auto-simulates a "refund initiated" state for no-shows or escalates complex complaints to QA.
+## 12. Follow-Up Feedback Workflow
+After a job is marked `completed`, users can submit a 1-5 star rating and comment via `/api/orchestrate/feedback`. The agent mathematically logs the feedback and simulates a dynamic update to the provider's long-term reputation score.
 
-## 14. Fallback & Edge Cases
+## 13. Dispute Workflow
+The Dispute Agent (`/api/orchestrate/dispute`) simulates handling the realities of the informal economy. Intelligent logic auto-simulates a "refund initiated" state and a reliability penalty for "no-shows", escalates to a QA review for "quality complaints", or freezes payments for "price disagreements".
+
+## 14. Fallback and Edge Cases
 Hazir is highly resilient:
 - **Low-Confidence / Missing Slots**: The "AI Gatekeeper" halts orchestration and asks clarifying questions if location or time is missing.
-- **API Failure**: A Regex Fallback strategy acts as a safety net if the LLM API timeouts or fails.
+- **Regex Fallback**: A keyword fallback strategy acts as a safety net if the LLM API timeouts or fails.
 - **Empty States**: If no providers match the criteria, a graceful "No Providers Available" UI is triggered.
 
-## 15. Baseline Comparison
+## 15. Antigravity Trace Fields
+The UI "Dev Mode" exposes the backend agent trace, containing:
+- `duplicate_check_performed`: Boolean flag for idempotency check.
+- `booking_lock_key`: The hashed MD5 lock key.
+- `provider_slot_key`: The specific provider/time string key.
+- `duplicate_detected`: Boolean indicating if a collision happened.
+- `slot_available`: Boolean indicating if the provider had availability.
+- `external_sync_executed`: Boolean tracking if the mock webhook fired.
+- `final_booking_decision`: Enum (e.g., `approved_new_booking`, `rejected_duplicate`).
+
+## 16. Baseline Comparison
 Traditional directory apps (like JustDial) or Facebook Groups require users to manually search, filter, negotiate prices, and endlessly check availability. Hazir reduces a 15-minute frustrating search-and-negotiate process into a **< 5 second atomic interaction** via GenAI orchestration.
 
-## 16. Cost & Latency Analysis
+## 17. Cost and Latency Analysis
 - **API Costs**: By utilizing `gemini-2.5-flash` with a strictly enforced `SYSTEM_PROMPT` and Pydantic schemas, token usage is heavily minimized. Typical extraction consumes < 150 tokens, costing fractions of a cent per request.
-- **Latency**: End-to-end orchestration (from query submission to booking confirmation) averages **~800ms - 1.2s**. The deterministic matching engine runs in `< 5ms`.
+- **Latency**: End-to-end orchestration averages **~800ms - 1.5s**. The deterministic matching engine runs in `< 5ms`.
 
-## 17. Privacy Note
-All extracted PII (Personally Identifiable Information) such as location, preferences, and phone numbers are isolated within the orchestrator's transient state. We do not store raw PII without consent. Service provider data used in matching is strictly synthetic/mocked for the duration of this hackathon, ensuring no real-world data leaks.
+## 18. Privacy Note
+All extracted PII (Personally Identifiable Information) such as location, preferences, and phone numbers are isolated within the orchestrator's transient state. Service provider data used in matching is strictly synthetic/mocked for the duration of this hackathon, ensuring no real-world data leaks.
 
-## 18. Limitations
-- **Synthetic Data Reliance**: For hackathon presentation stability, the ranking logic relies heavily on the 60-provider in-memory synthetic dataset.
-- **Routing Accuracy**: Distance is currently calculated using Euclidean vectors (straight-line) rather than real-time Google Maps traffic APIs.
-- **Calendar Integrations**: Final booking simulations do not write to external user Google Calendars or spreadsheets.
+## 19. Limitations
+- **Synthetic Data Reliance**: The ranking logic relies on the 60-provider in-memory synthetic dataset.
+- **Routing Accuracy**: Distance is calculated using Euclidean vectors (straight-line) rather than real-time Google Maps traffic APIs.
+- **Simulations**: Provider registration, external Google Calendar syncing, push notifications, dispute resolution, and feedback updates are purely simulated mechanisms and do not mutate persistent external databases.
 
-## 19. Setup Instructions
+## 20. Demo Walkthrough
+[Insert Demo Walkthrough YouTube Link Here]
+
+## 21. Setup Instructions
 To run the complete ecosystem locally:
 
 ### 1. Backend (FastAPI)
@@ -114,14 +129,25 @@ npm run dev
 ```bash
 cd mobile/expo_client
 npm install
+```
+
+**Important pre-build configuration**:
+Before running or building the APK, you must configure the backend API URL. Open `mobile/expo_client/App.js` and set the `API_BASE` constant to your local machine's IPv4 address or your production domain (e.g., `http://192.168.1.5:8000`). Alternatively, you can use `.env` files with `EXPO_PUBLIC_API_BASE_URL`.
+
+```bash
 npx expo start
 ```
 
-## 20. Demo Video Link
-[Insert YouTube Link Here]
+## 22. Submission Links Placeholders
+- **Demo Video Link**: [Insert YouTube Link Here]
+- **APK Link**: [Insert Google Drive/Expo Link Here]
+- **Antigravity Usage Video**: [Insert YouTube Link Here]
 
-## 21. APK Link
-[Insert Google Drive/Expo Link Here]
-
-## 22. Antigravity Trace/Logs
-The web and mobile frontends feature a dedicated "Dev Mode" toggle. When active, it displays the full **Agent Trace Log**, offering complete X-Ray visibility into the AI's language parsing confidence, ranking rationales, dynamic price logic, and fallback behaviors in real-time.
+---
+## Final Submission Checklist
+- [x] Mobile app/APK code prepared
+- [x] GitHub repo structured and secured
+- [ ] Demo video (Pending Upload)
+- [ ] Antigravity usage video (Pending Upload)
+- [x] README properly documented
+- [x] Trace/log ZIP generated in submission folder
