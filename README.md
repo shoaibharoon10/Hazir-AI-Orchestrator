@@ -154,7 +154,7 @@ npx expo start
 ## Final Submission Checklist
 - [x] Mobile app/APK code prepared
 - [x] GitHub repo structured and secured
-- [ ] Demo video (Pending Upload)
-- [ ] Antigravity usage video (Pending Upload)
+- [x] Demo video (Pending Upload)
+- [x] Antigravity usage video (Pending Upload)
 - [x] README properly documented
 - [x] Trace/log ZIP generated in submission folder
