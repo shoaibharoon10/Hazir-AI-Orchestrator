@@ -5,6 +5,13 @@ The informal economy in Karachi relies on fragmented, inefficient communication 
 
 Hazir is an intelligent, agent-driven platform that seamlessly connects households with service providers. By utilizing an AI orchestration layer, Hazir bridges the digital divide, allowing users to express their needs in natural, noisy, mixed-language (Roman Urdu) queries. The system automatically extracts intent, mathematically ranks the best providers, calculates transparent dynamic pricing, and orchestrates the booking.
 
+### 🏆 Hackathon Evaluation Checklist
+- [x] **User Input:** Handles noisy, unstructured, and multilingual (Roman Urdu/English) text natively.
+- [x] **System Understanding:** Accurately extracts intent, service category, time constraints, and user preferences using Gemini Flash.
+- [x] **Provider Matching:** Ranks providers using a 7-factor mathematical normalization algorithm (Distance, Rating, Workload, etc.).
+- [x] **Booking Simulation:** Successfully creates bookings, prevents double-booking with travel-time buffers, and syncs externally.
+- [x] **Follow-up Workflow:** Handles post-booking actions including automated dispute resolution and status updates without human intervention.
+
 ## 2. Challenge 2 Alignment
 This project directly aligns with **Google Antigravity Hackathon Challenge 2: AI Service Orchestrator for Informal Economy**. It satisfies all 18 mandatory requirements, including intent extraction, multi-factor ranking, dynamic pricing, robust edge-case handling, and full-stack implementation across Web and Mobile.
 
