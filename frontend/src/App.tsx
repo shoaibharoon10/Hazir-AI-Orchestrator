@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './index.css';
 
+// Note for Judges: If testing on a separate device, change 127.0.0.1 to your network IP.
 const BACKEND_URL = 'http://127.0.0.1:8000/api/orchestrate/run-all';
 
 function App() {

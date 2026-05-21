@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const BACKEND_URL = 'http://192.168.10.7:8000/api/orchestrate/run-all';
+// JUDGES: REPLACE <YOUR_LOCAL_IP> WITH YOUR MACHINE'S IPV4 ADDRESS (e.g., 192.168.1.5)
+const BACKEND_URL = 'http://<YOUR_LOCAL_IP>:8000/api/orchestrate/run-all';
 
 const getTheme = (isDarkMode) => ({
   background: isDarkMode ? '#0F172A' : '#F8FAFC',
@@ -803,7 +804,7 @@ const SignupProviderScreen = ({ setCurrentScreen, isDarkMode }) => {
         working_hours: { start: startTime, end: endTime }
       };
 
-      const res = await fetch('http://192.168.10.7:8000/api/auth/register-provider', {
+      const res = await fetch('http://<YOUR_LOCAL_IP>:8000/api/auth/register-provider', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
